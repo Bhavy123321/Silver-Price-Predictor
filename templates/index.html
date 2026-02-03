@@ -12,32 +12,39 @@
 
     <div class="card form-card">
       <form method="POST" class="form-grid">
+
         <div class="field">
           <label>State / UT</label>
-          <select name="state" required>
-            {% for s in states %}
-              <option value="{{ s }}" {% if result and result.state == s %}selected{% endif %}>{{ s }}</option>
-            {% endfor %}
-          </select>
+          <div class="select-wrap">
+            <select name="state" required>
+              {% for s in states %}
+                <option value="{{ s }}" {% if result and result.state == s %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
         </div>
 
         <div class="field">
           <label>Horizon</label>
-          <select name="horizon" required>
-            <option value="1h">Next Hour</option>
-            <option value="1d" selected>Next Day</option>
-            <option value="1m">Next Month</option>
-          </select>
+          <div class="select-wrap">
+            <select name="horizon" required>
+              <option value="1h">Next Hour</option>
+              <option value="1d" selected>Next Day</option>
+              <option value="1m">Next Month</option>
+            </select>
+          </div>
         </div>
 
         <div class="field">
           <label>Silver Purity</label>
-          <select name="purity" required>
-            <option value="999">999 (Fine Silver)</option>
-            <option value="925">925 (Sterling)</option>
-            <option value="900">900</option>
-            <option value="800">800</option>
-          </select>
+          <div class="select-wrap">
+            <select name="purity" required>
+              <option value="999">999 (Fine Silver)</option>
+              <option value="925">925 (Sterling)</option>
+              <option value="900">900</option>
+              <option value="800">800</option>
+            </select>
+          </div>
         </div>
 
         <div class="field info-box">
@@ -94,38 +101,30 @@
       </div>
     </div>
 
-    <!-- ✅ CURRENT MARKET REFERENCE -->
-    <div class="current-line">
-      <div class="current-title">Current Silver Price (Market Reference)</div>
-      <div class="current-value">
+    <!-- ✅ CURRENT MARKET PRICE -->
+    <div class="price-row">
+      <div class="price-title">Current Silver Price (Market Reference)</div>
+      <div class="price-value">
         ₹{{ result.current_per_g }} <span>/g</span>
         <span class="dot">•</span>
         ₹{{ result.current_per_kg }} <span>/kg</span>
       </div>
     </div>
 
-    <!-- ✅ BASE / PREMIUM / FINAL -->
-    <div class="grid3">
-      <div class="stat">
-        <div class="stat-label">BASE (INR/KG)</div>
-        <div class="stat-value">₹{{ result.base_inr_kg }}</div>
-        <div class="mini muted">Market INR/kg (converted)</div>
+    <!-- ✅ PREDICTED PRICE (same style as current) -->
+    <div class="price-row predicted-row">
+      <div class="price-title">Predicted Silver Price (For Selected State + Purity)</div>
+      <div class="price-value">
+        ₹{{ result.prices.per_g }} <span>/g</span>
+        <span class="dot">•</span>
+        ₹{{ result.predicted_per_kg }} <span>/kg</span>
       </div>
-
-      <div class="stat">
-        <div class="stat-label">PREMIUM (₹/KG)</div>
-        <div class="stat-value">₹{{ result.premium_per_kg }}</div>
-        <div class="mini muted">State/wholesale premium</div>
-      </div>
-
-      <div class="stat stat-highlight">
-        <div class="stat-label">FINAL RATE (₹/G)</div>
-        <div class="stat-value">₹{{ result.prices.per_g }}</div>
-        <div class="mini muted">(Base + Premium) per gram</div>
+      <div class="mini muted">
+        Includes state premium + purity factor. (Not guaranteed)
       </div>
     </div>
 
-    <!-- ✅ THIRD ROW FIXED: ONLY FINAL AMOUNTS -->
+    <!-- ✅ Amounts -->
     <div class="prices-strip">
       <div><span class="tag">1g amount</span> ₹{{ result.prices.p1 }}</div>
       <div><span class="tag">10g amount</span> ₹{{ result.prices.p10 }}</div>
