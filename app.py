@@ -13,14 +13,13 @@ app.secret_key = "silver-predictor-secret"
 # YOUR SOCIAL LINKS (edit)
 # -------------------------
 SOCIAL = {
-    "github": "https://github.com/Bhavy123321",
-    "linkedin": "https://www.linkedin.com/in/bhavy-soni-6123a32b0/"
+    "github": "https://github.com/YOUR_GITHUB_USERNAME",
+    "linkedin": "https://www.linkedin.com/in/YOUR_LINKEDIN_USERNAME/"
 }
 
 # -------------------------
 # ALL INDIA: States + UTs
-# Premium here is a simple demo premium (₹ per kg)
-# You can tune these based on real market research later.
+# Premium here is a demo premium (₹ per kg)
 # -------------------------
 STATE_PREMIUM = {
     # States
@@ -130,6 +129,12 @@ def usd_oz_to_inr_kg(price_usd_per_oz, usd_inr):
     return float(price_usd_per_oz) * float(usd_inr) * oz_per_kg
 
 def predict_with_model(model, X_row):
+    """
+    Returns: direction, confidence%, proba_up%
+    direction: UP or DOWN
+    confidence: model confidence for predicted class
+    proba_up: probability of UP
+    """
     pred = int(model.predict(X_row)[0])
     proba_up = float(model.predict_proba(X_row)[0][1])
     direction = "UP" if pred == 1 else "DOWN"
@@ -153,6 +158,9 @@ def fetch_hourly_series(days="5d"):
         return None
 
 def fetch_hourly_features():
+    """
+    Used only for Next Hour.
+    """
     silver = yf.download("SI=F", period="5d", interval="1h", auto_adjust=True, progress=False)
     usdinr = yf.download("USDINR=X", period="5d", interval="1h", auto_adjust=True, progress=False)
 
@@ -173,6 +181,40 @@ def fetch_hourly_features():
         return None, None
 
     X_last = df[["silver_close", "usd_inr", "lag_1", "lag_2", "lag_3", "hour"]].iloc[[-1]]
+    latest = df.iloc[-1]
+    return X_last, latest
+
+def fetch_daily_features_for_day():
+    """
+    STABLE Next-Day prediction using daily data.
+    Fixes many errors from hourly data.
+    """
+    silver = yf.download("SI=F", period="120d", interval="1d", auto_adjust=True, progress=False)
+    usdinr = yf.download("USDINR=X", period="120d", interval="1d", auto_adjust=True, progress=False)
+
+    silver_close = safe_close_series(silver)
+    usd_inr = safe_close_series(usdinr)
+
+    if silver_close is None or usd_inr is None:
+        return None, None
+
+    df = pd.concat([silver_close.rename("silver_close"), usd_inr.rename("usd_inr")], axis=1).dropna()
+
+    # Daily lags + returns (common & stable)
+    df["lag_1"] = df["silver_close"].shift(1)
+    df["lag_2"] = df["silver_close"].shift(2)
+    df["lag_3"] = df["silver_close"].shift(3)
+
+    df["ret_1"] = df["silver_close"].pct_change(1)
+    df["ret_5"] = df["silver_close"].pct_change(5)
+
+    df["dayofweek"] = df.index.dayofweek
+
+    df = df.dropna()
+    if df.empty:
+        return None, None
+
+    X_last = df[["silver_close", "usd_inr", "lag_1", "lag_2", "lag_3", "ret_1", "ret_5", "dayofweek"]].iloc[[-1]]
     latest = df.iloc[-1]
     return X_last, latest
 
@@ -214,11 +256,10 @@ def fetch_daily_features_for_month():
 
 def build_price_cards(base_inr_kg, premium_per_kg, purity_factor):
     """
-    Returns predicted prices for 1g/10g/100g.
-    We convert:
-      base INR/kg -> INR/g
-      premium INR/kg -> INR/g
-      apply purity factor
+    Returns predicted prices for 1g/10g/100g
+    base INR/kg -> INR/g
+    premium INR/kg -> INR/g
+    apply purity factor
     """
     base_per_g = (base_inr_kg / 1000.0) * purity_factor
     premium_per_g = (premium_per_kg / 1000.0)
@@ -240,7 +281,7 @@ def build_price_cards(base_inr_kg, premium_per_kg, purity_factor):
 def index():
     result = None
 
-    # Price chart (last 48 points)
+    # Trend chart values
     series = fetch_hourly_series(days="5d")
     labels, values = [], []
     if series is not None and not series.empty:
@@ -257,31 +298,55 @@ def index():
         purity_factor = SILVER_PURITY.get(purity, 1.0)
 
         try:
-            if horizon in ["1h", "1d"]:
+            # -----------------------------
+            # NEXT HOUR
+            # -----------------------------
+            if horizon == "1h":
                 X_last, latest = fetch_hourly_features()
                 if X_last is None:
                     flash("Could not fetch hourly market data right now. Please try again.", "error")
                     return redirect(url_for("index"))
 
-                if horizon == "1h":
-                    direction, confidence, proba_up = predict_with_model(model_1h, X_last)
-                    horizon_title = "Next Hour"
-                else:
-                    direction, confidence, proba_up = predict_with_model(model_1d, X_last)
-                    horizon_title = "Next Day (24h)"
-
+                direction, confidence, proba_up = predict_with_model(model_1h, X_last)
+                horizon_title = "Next Hour"
                 base_inr_kg = usd_oz_to_inr_kg(latest["silver_close"], latest["usd_inr"])
 
+            # -----------------------------
+            # NEXT DAY (FIXED -> DAILY DATA)
+            # -----------------------------
+            elif horizon == "1d":
+                X_last, latest = fetch_daily_features_for_day()
+                if X_last is None:
+                    flash("Could not fetch daily market data right now. Please try again.", "error")
+                    return redirect(url_for("index"))
+
+                # Handle feature-name mismatch safely
+                try:
+                    direction, confidence, proba_up = predict_with_model(model_1d, X_last)
+                except Exception:
+                    direction, confidence, proba_up = predict_with_model(model_1d, X_last.values)
+
+                horizon_title = "Next Day (1d)"
+                base_inr_kg = usd_oz_to_inr_kg(latest["silver_close"], latest["usd_inr"])
+
+            # -----------------------------
+            # NEXT MONTH
+            # -----------------------------
             else:
                 X_last, latest = fetch_daily_features_for_month()
                 if X_last is None:
                     flash("Could not fetch daily market data right now. Please try again.", "error")
                     return redirect(url_for("index"))
 
-                direction, confidence, proba_up = predict_with_model(model_1m, X_last)
+                try:
+                    direction, confidence, proba_up = predict_with_model(model_1m, X_last)
+                except Exception:
+                    direction, confidence, proba_up = predict_with_model(model_1m, X_last.values)
+
                 horizon_title = "Next Month (approx)"
                 base_inr_kg = usd_oz_to_inr_kg(latest["silver_close"], latest["usd_inr"])
 
+            # Price calculations
             price_cards = build_price_cards(base_inr_kg, premium, purity_factor)
 
             result = {
@@ -306,7 +371,6 @@ def index():
         result=result,
         labels=labels,
         values=values,
-        purity_map=SILVER_PURITY,
         social=SOCIAL
     )
 
