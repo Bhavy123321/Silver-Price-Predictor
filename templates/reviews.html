@@ -1,41 +1,87 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="grid2">
-  <div class="card page-card">
-    <div class="card-title">Leave a Review</div>
+<section class="reviews-page">
+
+  <!-- =====================
+       LEAVE A REVIEW
+  ====================== -->
+  <div class="card review-form-card">
+    <h2 class="section-title">Leave a Review</h2>
+
     <form method="POST" class="review-form">
-      <input name="name" placeholder="Your name" required />
-      <select name="rating">
-        <option value="5">⭐⭐⭐⭐⭐ (5)</option>
-        <option value="4">⭐⭐⭐⭐ (4)</option>
-        <option value="3">⭐⭐⭐ (3)</option>
-        <option value="2">⭐⭐ (2)</option>
-        <option value="1">⭐ (1)</option>
-      </select>
-      <textarea name="message" placeholder="Your feedback..." required></textarea>
-      <button class="btn-primary" type="submit">Submit Review</button>
+
+      <input
+        type="text"
+        name="name"
+        placeholder="Your name"
+        required
+      />
+
+      <!-- ⭐ STAR RATING -->
+      <div class="rating">
+        <input type="radio" id="star5" name="rating" value="5" checked>
+        <label for="star5">★</label>
+
+        <input type="radio" id="star4" name="rating" value="4">
+        <label for="star4">★</label>
+
+        <input type="radio" id="star3" name="rating" value="3">
+        <label for="star3">★</label>
+
+        <input type="radio" id="star2" name="rating" value="2">
+        <label for="star2">★</label>
+
+        <input type="radio" id="star1" name="rating" value="1">
+        <label for="star1">★</label>
+      </div>
+
+      <textarea
+        name="message"
+        placeholder="Share your experience..."
+        rows="3"
+        required
+      ></textarea>
+
+      <button class="btn-primary" type="submit">
+        Submit Review
+      </button>
+
     </form>
   </div>
 
-  <div class="card page-card">
-    <div class="card-title">Recent Reviews</div>
-    {% if reviews and reviews|length %}
-      <div class="review-list">
+  <!-- =====================
+       RECENT REVIEWS
+  ====================== -->
+  <div class="card reviews-list-card">
+    <h2 class="section-title">Recent Reviews</h2>
+
+    {% if reviews %}
+      <div class="reviews-list">
         {% for r in reviews %}
           <div class="review-item">
-            <div class="review-head">
-              <b>{{ r[0] }}</b>
-              <span class="muted">⭐ {{ r[1] }}/5 • {{ r[3] }}</span>
+            <div class="review-header">
+              <div class="review-name">{{ r[0] }}</div>
+              <div class="review-rating">
+                {% for _ in range(r[1]) %}★{% endfor %}
+              </div>
             </div>
-            <div class="muted">{{ r[2] }}</div>
+
+            <div class="review-date">
+              {{ r[3] }}
+            </div>
+
+            <div class="review-message">
+              {{ r[2] }}
+            </div>
           </div>
         {% endfor %}
       </div>
     {% else %}
-      <div class="muted">No reviews yet. Be the first 😊</div>
+      <p class="empty-text">No reviews yet. Be the first to share feedback!</p>
     {% endif %}
   </div>
-</div>
+
+</section>
 
 {% endblock %}
