@@ -3,6 +3,7 @@
 
 <section class="hero">
 
+  <!-- LEFT -->
   <div class="hero-left">
     <h1 class="title">Smart Silver Forecast</h1>
     <p class="subtitle">
@@ -29,9 +30,9 @@
           <label>Horizon</label>
           <div class="select-wrap">
             <select name="horizon" required>
-              <option value="1h">Next Hour</option>
-              <option value="1d" selected>Next Day</option>
-              <option value="1m">Next Month</option>
+              <option value="1h" {% if result and "Hour" in result.horizon %}selected{% endif %}>Next Hour</option>
+              <option value="1d" {% if result and "Day" in result.horizon %}selected{% endif %}>Next Day</option>
+              <option value="1m" {% if result and "Month" in result.horizon %}selected{% endif %}>Next Month</option>
             </select>
           </div>
         </div>
@@ -40,10 +41,10 @@
           <label>Silver Purity</label>
           <div class="select-wrap">
             <select name="purity" required>
-              <option value="999">999 (Fine Silver)</option>
-              <option value="925">925 (Sterling)</option>
-              <option value="900">900</option>
-              <option value="800">800</option>
+              <option value="999" {% if result and result.purity == "999" %}selected{% endif %}>999 (Fine Silver)</option>
+              <option value="925" {% if result and result.purity == "925" %}selected{% endif %}>925 (Sterling)</option>
+              <option value="900" {% if result and result.purity == "900" %}selected{% endif %}>900</option>
+              <option value="800" {% if result and result.purity == "800" %}selected{% endif %}>800</option>
             </select>
           </div>
         </div>
@@ -62,8 +63,76 @@
 
       </form>
     </div>
+
+    <!-- ✅ RESULT SECTION (THIS WAS MISSING) -->
+    {% if result %}
+    <div class="card result-card" style="margin-top:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+        <div>
+          <div style="opacity:.75; font-weight:900; font-size:12px; letter-spacing:.35px;">PREDICTION RESULT</div>
+          <div style="font-size:34px; font-weight:950; margin-top:6px;">
+            {{ result.direction }} • {{ result.confidence }}% confidence
+          </div>
+          <div style="opacity:.75; margin-top:4px;">
+            {{ result.horizon }} • {{ result.state }} • Purity {{ result.purity }}
+          </div>
+        </div>
+
+        <div class="pill" style="padding:10px 14px;">
+          {{ result.direction }}
+        </div>
+      </div>
+
+      <div style="margin-top:14px; padding:14px; border-radius:18px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03);">
+        <div style="opacity:.75; font-weight:900; font-size:12px;">CURRENT SILVER PRICE (MARKET REFERENCE)</div>
+        <div style="font-size:26px; font-weight:950; margin-top:4px;">
+          ₹{{ "%.2f"|format(result.base_inr_kg/1000) }} / g &nbsp; • &nbsp; ₹{{ "%.2f"|format(result.base_inr_kg) }} / kg
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:14px;">
+        <div class="card" style="padding:14px;">
+          <div style="opacity:.75; font-weight:900; font-size:12px;">BASE (INR/KG)</div>
+          <div style="font-size:24px; font-weight:950; margin-top:6px;">₹{{ result.base_inr_kg }}</div>
+          <div style="opacity:.7; margin-top:4px;">Market INR/kg (converted)</div>
+        </div>
+
+        <div class="card" style="padding:14px;">
+          <div style="opacity:.75; font-weight:900; font-size:12px;">PREMIUM (₹/KG)</div>
+          <div style="font-size:24px; font-weight:950; margin-top:6px;">₹{{ result.premium_per_kg }}</div>
+          <div style="opacity:.7; margin-top:4px;">State/wholesale premium</div>
+        </div>
+
+        <div class="card" style="padding:14px; border-color: rgba(46,229,157,.35); background: rgba(46,229,157,.07);">
+          <div style="opacity:.75; font-weight:900; font-size:12px;">PREDICTED SILVER PRICE (₹/G)</div>
+          <div style="font-size:24px; font-weight:950; margin-top:6px;">₹{{ result.prices.per_g }}</div>
+          <div style="opacity:.7; margin-top:4px;">(Base + Premium) per gram</div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px; padding:14px; border-radius:18px; border:1px dashed rgba(255,255,255,.18); background:rgba(0,0,0,.18);">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <span class="pill" style="padding:8px 12px;">1g amount</span>
+          <strong style="font-size:18px;">₹{{ result.prices.p1 }}</strong>
+
+          <span class="pill" style="padding:8px 12px;">10g amount</span>
+          <strong style="font-size:18px;">₹{{ result.prices.p10 }}</strong>
+
+          <span class="pill" style="padding:8px 12px;">100g amount</span>
+          <strong style="font-size:18px;">₹{{ result.prices.p100 }}</strong>
+        </div>
+      </div>
+
+      <div style="margin-top:14px; padding:14px; border-radius:18px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03); color:rgba(234,240,255,.82);">
+        ⚠️ These are AI-based estimates using historical trends + live market data. Treat them as a smart reference — not guaranteed rates.
+      </div>
+
+    </div>
+    {% endif %}
+
   </div>
 
+  <!-- RIGHT -->
   <div class="hero-right">
     <div class="card chart-card">
       <div class="card-title">Silver Trend (Last ~48 Hours)</div>
@@ -79,6 +148,7 @@
       </div>
     </div>
   </div>
+
 </section>
 
 <script>
