@@ -1,55 +1,90 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Silver Predictor</title>
+{% extends "base.html" %}
+{% block content %}
 
-  <!-- ✅ Correct way to load CSS in Flask -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<section class="hero">
 
-  <!-- Chart.js (needed for your charts) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-</head>
+  <!-- LEFT SIDE -->
+  <div class="hero-left">
+    <h1 class="title">Smart Silver Forecast</h1>
+    <p class="subtitle">
+      Choose your <b>State/UT</b>, <b>Purity</b> and <b>Horizon</b>.
+      We predict direction <span class="chip">UP / DOWN</span> with confidence
+      and estimate prices for <b>1g / 10g / 100g</b>.
+    </p>
 
-<body>
-  <!-- ✅ TOPBAR -->
-  <header class="topbar">
-    <div class="brand">
-      <div class="logo"></div>
-      <div>
-        <div class="brand-title">Silver Predictor</div>
-        <div class="brand-sub">AI Direction Forecast • Purity • State Premium</div>
+    <div class="card form-card">
+      <form method="POST" class="form-grid">
+
+        <div class="field">
+          <label>State / UT</label>
+          <div class="select-wrap">
+            <select name="state" required>
+              {% for s in states %}
+                <option value="{{ s }}">{{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Horizon</label>
+          <div class="select-wrap">
+            <select name="horizon" required>
+              <option value="1h">Next Hour</option>
+              <option value="1d" selected>Next Day</option>
+              <option value="1m">Next Month</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Silver Purity</label>
+          <div class="select-wrap">
+            <select name="purity" required>
+              <option value="999">999 (Fine Silver)</option>
+              <option value="925">925 (Sterling)</option>
+              <option value="900">900</option>
+              <option value="800">800</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field info-box">
+          <div class="info-title">What you’ll get</div>
+          <ul class="info-list">
+            <li>✔ Direction & confidence</li>
+            <li>✔ Silver trend chart</li>
+            <li>✔ Estimated prices (1g / 10g / 100g)</li>
+          </ul>
+        </div>
+
+        <button class="btn-primary" type="submit">Run Prediction</button>
+        <div class="tip">
+          Tip: Day & Month predictions are usually more stable than Hour predictions.
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDE -->
+  <div class="hero-right">
+
+    <div class="card chart-card">
+      <div class="card-title">Silver Trend (Last ~48 Hours)</div>
+      <canvas id="priceChart"></canvas>
+      <div class="card-foot">Source: SI=F hourly close values.</div>
+    </div>
+
+    <div class="card connect-card">
+      <div class="card-title">Connect with me</div>
+      <div class="btn-row">
+        <a class="btn-soft" href="{{ social.github }}" target="_blank">🐙 GitHub</a>
+        <a class="btn-soft" href="{{ social.linkedin }}" target="_blank">💼 LinkedIn</a>
       </div>
     </div>
 
-    <nav class="navlinks">
-      <a href="{{ url_for('index') }}">Dashboard</a>
-      <a href="{{ url_for('about') }}">About</a>
-      <a href="{{ url_for('reviews') }}">Reviews</a>
+  </div>
+</section>
 
-      <a class="pill" href="{{ social.github }}" target="_blank" rel="noopener">GitHub</a>
-      <a class="pill" href="{{ social.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>
-    </nav>
-  </header>
-
-  <main class="page">
-    <!-- ✅ Flash messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="toastwrap">
-          {% for category, message in messages %}
-            <div class="toast {{ category }}">{{ message }}</div>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
-
-    {% block content %}{% endblock %}
-  </main>
-
-  <footer class="footer">
-    ⚠️ Note: All prices are AI-based estimates using historical trends + live market data. Not guaranteed.
-  </footer>
-</body>
-</html>
+{% endblock %}
