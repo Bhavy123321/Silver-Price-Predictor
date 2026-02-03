@@ -1,168 +1,148 @@
 {% extends "base.html" %}
 {% block content %}
 
-<section class="hero">
-
+<section class="grid">
   <!-- LEFT -->
-  <div class="hero-left">
-    <h1 class="title">Smart Silver Forecast</h1>
-    <p class="subtitle">
-      Choose your <b>State/UT</b>, <b>Purity</b> and <b>Horizon</b>.
-      We predict direction <span class="chip">UP/DOWN</span> with confidence
-      and estimate prices for <b>1g / 10g / 100g</b>.
-    </p>
+  <div class="stack">
+    <div class="hero">
+      <h1 class="h1">Smart Silver Forecast</h1>
+      <p class="lead">
+        Choose your <b>State/UT</b>, <b>Purity</b> and <b>Horizon</b>.
+        We predict <span class="chip">UP/DOWN</span> with confidence and estimate prices for <b>1g / 10g / 100g</b>.
+      </p>
+    </div>
 
-    <!-- FORM -->
-    <div class="card form-card">
-      <form method="POST" class="form-grid">
+    <!-- FORM CARD -->
+    <div class="card">
+      <form method="POST" class="form">
+        <div class="form-row">
+          <!-- State -->
+          <div class="field">
+            <label class="label">State / UT</label>
+            <div class="select" data-select>
+              <select name="state" required>
+                {% for s in states %}
+                  <option value="{{ s }}" {% if result and result.state == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+              </select>
+              <span class="select-icon">▾</span>
+            </div>
+          </div>
 
-        <div class="field">
-          <label>State / UT</label>
-          <div class="select-wrap">
-            <select name="state" required>
-              {% for s in states %}
-                <option value="{{ s }}" {% if result and result.state == s %}selected{% endif %}>{{ s }}</option>
-              {% endfor %}
-            </select>
+          <!-- Horizon -->
+          <div class="field">
+            <label class="label">Horizon</label>
+            <div class="select" data-select>
+              <select name="horizon" required>
+                <option value="1h" {% if result and "Hour" in result.horizon %}selected{% endif %}>Next Hour</option>
+                <option value="1d" {% if result and "Day" in result.horizon %}selected{% endif %}>Next Day</option>
+                <option value="1m" {% if result and "Month" in result.horizon %}selected{% endif %}>Next Month</option>
+              </select>
+              <span class="select-icon">▾</span>
+            </div>
           </div>
         </div>
 
-        <div class="field">
-          <label>Horizon</label>
-          <div class="select-wrap">
-            <select name="horizon" required>
-              <option value="1h" {% if result and "Hour" in result.horizon %}selected{% endif %}>Next Hour</option>
-              <option value="1d" {% if result and "Day" in result.horizon %}selected{% endif %}>Next Day</option>
-              <option value="1m" {% if result and "Month" in result.horizon %}selected{% endif %}>Next Month</option>
-            </select>
+        <div class="form-row">
+          <!-- Purity -->
+          <div class="field">
+            <label class="label">Silver Purity</label>
+            <div class="select" data-select>
+              <select name="purity" required>
+                <option value="999" {% if result and result.purity == "999" %}selected{% endif %}>999 (Fine Silver)</option>
+                <option value="925" {% if result and result.purity == "925" %}selected{% endif %}>925 (Sterling)</option>
+                <option value="900" {% if result and result.purity == "900" %}selected{% endif %}>900</option>
+                <option value="800" {% if result and result.purity == "800" %}selected{% endif %}>800</option>
+              </select>
+              <span class="select-icon">▾</span>
+            </div>
+          </div>
+
+          <!-- What you'll get -->
+          <div class="field info">
+            <div class="info-title">What you’ll get</div>
+            <ul class="info-list">
+              <li>✅ Direction + Confidence</li>
+              <li>✅ Trend chart</li>
+              <li>✅ Estimated prices (1g/10g/100g)</li>
+            </ul>
           </div>
         </div>
 
-        <div class="field">
-          <label>Silver Purity</label>
-          <div class="select-wrap">
-            <select name="purity" required>
-              <option value="999" {% if result and result.purity == "999" %}selected{% endif %}>999 (Fine Silver)</option>
-              <option value="925" {% if result and result.purity == "925" %}selected{% endif %}>925 (Sterling)</option>
-              <option value="900" {% if result and result.purity == "900" %}selected{% endif %}>900</option>
-              <option value="800" {% if result and result.purity == "800" %}selected{% endif %}>800</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="field info-box">
-          <div class="info-title">What you’ll get</div>
-          <ul class="info-list">
-            <li>✅ Direction + Confidence</li>
-            <li>✅ Trend chart</li>
-            <li>✅ Estimated prices (1g/10g/100g)</li>
-          </ul>
-        </div>
-
-        <button class="btn-primary" type="submit">Run Prediction</button>
+        <button class="btn" type="submit">Run Prediction</button>
         <div class="tip">Tip: Day/Month predictions are usually more stable than Hour predictions.</div>
       </form>
     </div>
 
-    <!-- RESULT -->
+    <!-- RESULT CARD -->
     {% if result %}
-    <div class="card" id="resultCard" style="margin-top:14px;">
-
-      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <div class="card" id="resultCard">
+      <div class="result-head">
         <div>
-          <div style="opacity:.75; font-weight:900; font-size:12px; letter-spacing:.35px;">PREDICTION RESULT</div>
-          <div style="font-size:34px; font-weight:950; margin-top:6px;">
-            {{ result.direction }} • {{ result.confidence }}% confidence
-          </div>
-          <div style="opacity:.75; margin-top:4px;">
-            {{ result.horizon }} • {{ result.state }} • Purity {{ result.purity }}
-          </div>
+          <div class="kicker">PREDICTION RESULT</div>
+          <div class="result-title">{{ result.direction }} • {{ result.confidence }}% confidence</div>
+          <div class="muted">{{ result.horizon }} • {{ result.state }} • Purity {{ result.purity }}</div>
         </div>
-
-        <div class="pill" style="padding:10px 14px;">
+        <div class="badge {{ 'badge-up' if result.direction == 'UP' else 'badge-down' }}">
           {{ result.direction }}
         </div>
       </div>
 
-      <!-- CURRENT PRICE -->
-      <div style="margin-top:14px; padding:14px; border-radius:18px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03);">
-        <div style="opacity:.75; font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:.35px;">
-          Current Silver Price (Market Reference)
-        </div>
-        <div style="font-size:26px; font-weight:950; margin-top:6px;">
+      <div class="bar">
+        <div class="bar-title">Current Silver Price (Market Reference)</div>
+        <div class="bar-value">
           ₹{{ "%.2f"|format(result.base_inr_kg/1000) }} / g
-          <span style="opacity:.55; font-weight:800; margin:0 8px;">•</span>
+          <span class="dot">•</span>
           ₹{{ "%.2f"|format(result.base_inr_kg) }} / kg
         </div>
       </div>
 
-      <!-- PREDICTED PRICE -->
-      <div style="margin-top:12px; padding:14px; border-radius:18px;
-                  border:1px solid rgba(46,229,157,.35); background:rgba(46,229,157,.08);">
-        <div style="opacity:.80; font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:.35px;">
-          Predicted Silver Price (Estimated)
-        </div>
-        <div style="font-size:26px; font-weight:950; margin-top:6px;">
+      <div class="bar bar-green">
+        <div class="bar-title">Predicted Silver Price (Estimated)</div>
+        <div class="bar-value">
           ₹{{ "%.2f"|format(result.prices.per_g) }} / g
-          <span style="opacity:.55; font-weight:800; margin:0 8px;">•</span>
+          <span class="dot">•</span>
           ₹{{ "%.2f"|format(result.prices.per_g*1000) }} / kg
         </div>
-        <div style="opacity:.70; margin-top:6px;">
-          Includes <b>state premium</b> + selected <b>purity</b> factor.
-        </div>
+        <div class="muted-sm">Includes state premium + selected purity factor.</div>
       </div>
 
-      <!-- AMOUNTS -->
-      <div style="margin-top:12px; padding:14px; border-radius:18px;
-                  border:1px dashed rgba(255,255,255,.18); background:rgba(0,0,0,.18);">
-        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-          <span class="pill" style="padding:8px 12px;">1g</span>
-          <strong style="font-size:18px;">₹{{ result.prices.p1 }}</strong>
-
-          <span class="pill" style="padding:8px 12px;">10g</span>
-          <strong style="font-size:18px;">₹{{ result.prices.p10 }}</strong>
-
-          <span class="pill" style="padding:8px 12px;">100g</span>
-          <strong style="font-size:18px;">₹{{ result.prices.p100 }}</strong>
-        </div>
+      <div class="amounts">
+        <span class="pill">1g</span><b>₹{{ result.prices.p1 }}</b>
+        <span class="pill">10g</span><b>₹{{ result.prices.p10 }}</b>
+        <span class="pill">100g</span><b>₹{{ result.prices.p100 }}</b>
       </div>
 
-      <!-- Disclaimer -->
-      <div style="margin-top:14px; padding:14px; border-radius:18px;
-                  border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03); color:rgba(234,240,255,.82);">
-        ⚠️ These are AI-based estimates using historical trends + live market data.
-        Treat them as a smart reference — not guaranteed rates.
+      <div class="notice">
+        ⚠️ These are AI-based estimates using historical trends + live market data. Treat them as a smart reference — not guaranteed rates.
       </div>
-
     </div>
     {% endif %}
   </div>
 
   <!-- RIGHT -->
-  <div class="hero-right">
-
-    <div class="card chart-card" id="trendCard">
+  <div class="stack">
+    <div class="card chart" id="trendCard">
       <div class="card-title">Silver Trend (Last ~48 Hours)</div>
-      <canvas id="priceChart"></canvas>
+      <div class="chart-box">
+        <canvas id="priceChart"></canvas>
+      </div>
       <div class="card-foot">Source: SI=F hourly close values.</div>
     </div>
 
     {% if result %}
-    <div class="card" id="confCard" style="margin-top:14px; display:flex; flex-direction:column;">
-      <div class="card-title" style="margin-bottom:10px;">Model Confidence (UP vs DOWN)</div>
-
-      <div style="flex:1; min-height:260px; position:relative;">
-        <canvas id="confChart" style="width:100%; height:100%;"></canvas>
+    <div class="card chart" id="confCard">
+      <div class="card-title">Model Confidence (UP vs DOWN)</div>
+      <div class="chart-box">
+        <canvas id="confChart"></canvas>
       </div>
-
-      <div style="opacity:.75; margin-top:10px; font-size:13px;">
-        UP: <b>{{ result.proba_up }}%</b> &nbsp; • &nbsp;
-        DOWN: <b>{{ "%.2f"|format(100 - result.proba_up) }}%</b>
+      <div class="card-foot">
+        UP: <b>{{ result.proba_up }}%</b> • DOWN: <b>{{ "%.2f"|format(100 - result.proba_up) }}%</b>
       </div>
     </div>
     {% endif %}
 
-    <div class="card connect-card" id="connectCard">
+    <div class="card">
       <div class="card-title">Connect with me</div>
       <div class="btn-row">
         <a class="btn-soft" href="{{ social.github }}" target="_blank" rel="noopener">🐙 GitHub</a>
@@ -170,10 +150,10 @@
       </div>
     </div>
   </div>
-
 </section>
 
 <script>
+  // Trend chart
   const labels = {{ (labels if labels else []) | tojson }};
   const values = {{ (values if values else []) | tojson }};
 
@@ -182,7 +162,7 @@
     new Chart(priceCanvas, {
       type: "line",
       data: {
-        labels: labels,
+        labels,
         datasets: [{
           label: "Silver Close (USD/oz)",
           data: values,
@@ -203,6 +183,7 @@
     });
   }
 
+  // Confidence chart
   const resultExists = {{ (true if result else false) | tojson }};
   if (resultExists) {
     const upProb = {{ (result.proba_up if result else 50) | tojson }};
@@ -214,38 +195,16 @@
         type: "doughnut",
         data: {
           labels: ["UP", "DOWN"],
-          datasets: [{
-            data: [upProb, downProb],
-            borderWidth: 0,
-            hoverOffset: 6
-          }]
+          datasets: [{ data: [upProb, downProb], borderWidth: 0, hoverOffset: 6 }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: {
-            legend: { display: true, position: "bottom" },
-            tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.raw.toFixed(2)}%` } }
-          },
+          plugins: { legend: { position: "bottom" } },
           cutout: "70%"
         }
       });
     }
-
-    const resultCard = document.getElementById("resultCard");
-    const confCard = document.getElementById("confCard");
-
-    function matchHeight(){
-      if (!resultCard || !confCard) return;
-      confCard.style.height = resultCard.offsetHeight + "px";
-    }
-
-    window.addEventListener("load", matchHeight);
-    window.addEventListener("resize", () => {
-      confCard.style.height = "auto";
-      matchHeight();
-    });
-    matchHeight();
   }
 </script>
 
