@@ -64,7 +64,7 @@
       </form>
     </div>
 
-    <!-- ✅ RESULT (NEW UI STYLE) -->
+    <!-- RESULT -->
     {% if result %}
     <div class="card" id="resultCard" style="margin-top:14px;">
 
@@ -84,7 +84,7 @@
         </div>
       </div>
 
-      <!-- ✅ CURRENT PRICE ROW -->
+      <!-- CURRENT PRICE -->
       <div style="margin-top:14px; padding:14px; border-radius:18px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03);">
         <div style="opacity:.75; font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:.35px;">
           Current Silver Price (Market Reference)
@@ -96,7 +96,7 @@
         </div>
       </div>
 
-      <!-- ✅ PREDICTED PRICE ROW -->
+      <!-- PREDICTED PRICE -->
       <div style="margin-top:12px; padding:14px; border-radius:18px;
                   border:1px solid rgba(46,229,157,.35); background:rgba(46,229,157,.08);">
         <div style="opacity:.80; font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:.35px;">
@@ -112,7 +112,7 @@
         </div>
       </div>
 
-      <!-- ✅ AMOUNTS LINE -->
+      <!-- AMOUNTS -->
       <div style="margin-top:12px; padding:14px; border-radius:18px;
                   border:1px dashed rgba(255,255,255,.18); background:rgba(0,0,0,.18);">
         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
@@ -136,20 +136,17 @@
 
     </div>
     {% endif %}
-
   </div>
 
   <!-- RIGHT -->
   <div class="hero-right">
 
-    <!-- Trend chart -->
     <div class="card chart-card" id="trendCard">
       <div class="card-title">Silver Trend (Last ~48 Hours)</div>
       <canvas id="priceChart"></canvas>
       <div class="card-foot">Source: SI=F hourly close values.</div>
     </div>
 
-    <!-- ✅ Confidence chart (same height as result container) -->
     {% if result %}
     <div class="card" id="confCard" style="margin-top:14px; display:flex; flex-direction:column;">
       <div class="card-title" style="margin-bottom:10px;">Model Confidence (UP vs DOWN)</div>
@@ -165,7 +162,6 @@
     </div>
     {% endif %}
 
-    <!-- Connect card -->
     <div class="card connect-card" id="connectCard">
       <div class="card-title">Connect with me</div>
       <div class="btn-row">
@@ -173,15 +169,11 @@
         <a class="btn-soft" href="{{ social.linkedin }}" target="_blank" rel="noopener">💼 LinkedIn</a>
       </div>
     </div>
-
   </div>
 
 </section>
 
 <script>
-  // -----------------------------
-  // Trend Chart
-  // -----------------------------
   const labels = {{ (labels if labels else []) | tojson }};
   const values = {{ (values if values else []) | tojson }};
 
@@ -211,9 +203,6 @@
     });
   }
 
-  // -----------------------------
-  // Confidence Chart + Match Height
-  // -----------------------------
   const resultExists = {{ (true if result else false) | tojson }};
   if (resultExists) {
     const upProb = {{ (result.proba_up if result else 50) | tojson }};
@@ -243,19 +232,17 @@
       });
     }
 
-    // Match conf card height to result card height (same size)
     const resultCard = document.getElementById("resultCard");
     const confCard = document.getElementById("confCard");
 
     function matchHeight(){
       if (!resultCard || !confCard) return;
-      // Set conf card height exactly same as result card
       confCard.style.height = resultCard.offsetHeight + "px";
     }
 
     window.addEventListener("load", matchHeight);
     window.addEventListener("resize", () => {
-      confCard.style.height = "auto"; // reset
+      confCard.style.height = "auto";
       matchHeight();
     });
     matchHeight();
