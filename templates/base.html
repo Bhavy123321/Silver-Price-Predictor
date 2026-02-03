@@ -1,16 +1,19 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Silver Predictor</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- ✅ Correct Flask static CSS path + cache bust -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=7">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
+
 <body>
+  <!-- ✅ Modern Navbar -->
   <header class="topbar">
     <div class="brand">
       <div class="logo"></div>
@@ -25,8 +28,8 @@
       <a href="{{ url_for('about') }}">About</a>
       <a href="{{ url_for('reviews') }}">Reviews</a>
 
-      <a class="pill" href="{{ social.github }}" target="_blank">GitHub</a>
-      <a class="pill" href="{{ social.linkedin }}" target="_blank">LinkedIn</a>
+      <a class="pill" href="{{ social.github }}" target="_blank" rel="noopener">GitHub</a>
+      <a class="pill" href="{{ social.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>
     </nav>
   </header>
 
@@ -45,7 +48,7 @@
   </main>
 
   <footer class="footer">
-    <div>© {{ datetime.utcnow().year if datetime else "2026" }} Silver Predictor • Built with Flask + ML</div>
+    ⚠️ Note: All prices are AI-based estimates using historical trends + live market data. Not guaranteed.
   </footer>
 </body>
 </html>
