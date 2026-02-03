@@ -1,213 +1,55 @@
-{% extends "base.html" %}
-{% block content %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Silver Predictor</title>
 
-<section class="hero">
-  <div class="hero-left">
-    <h1 class="title">Smart Silver Forecast</h1>
-    <p class="subtitle">
-      Choose your <b>State/UT</b>, <b>Purity</b> and <b>Horizon</b>.
-      We predict direction <span class="chip">UP/DOWN</span> with confidence and show estimated prices for
-      <b>1g / 10g / 100g</b>.
-    </p>
+  <!-- ✅ Correct way to load CSS in Flask -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
-    <div class="card form-card">
-      <form method="POST" class="form-grid">
+  <!-- Chart.js (needed for your charts) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
 
-        <div class="field">
-          <label>State / UT</label>
-          <div class="select-wrap">
-            <select name="state" required>
-              {% for s in states %}
-                <option value="{{ s }}" {% if result and result.state == s %}selected{% endif %}>{{ s }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Horizon</label>
-          <div class="select-wrap">
-            <select name="horizon" required>
-              <option value="1h">Next Hour</option>
-              <option value="1d" selected>Next Day</option>
-              <option value="1m">Next Month</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Silver Purity</label>
-          <div class="select-wrap">
-            <select name="purity" required>
-              <option value="999">999 (Fine Silver)</option>
-              <option value="925">925 (Sterling)</option>
-              <option value="900">900</option>
-              <option value="800">800</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="field info-box">
-          <div class="info-title">What you’ll get</div>
-          <ul class="info-list">
-            <li>✅ Direction + Confidence</li>
-            <li>✅ Trend chart</li>
-            <li>✅ Estimated prices (1g/10g/100g)</li>
-          </ul>
-        </div>
-
-        <button class="btn-primary" type="submit">Run Prediction</button>
-        <div class="tip">Tip: Day/Month predictions are usually more stable than Hour predictions.</div>
-      </form>
-    </div>
-  </div>
-
-  <div class="hero-right">
-    <div class="card chart-card">
-      <div class="card-title">Silver Trend (Last ~48 Hours)</div>
-      <canvas id="priceChart"></canvas>
-      <div class="card-foot">Source: SI=F hourly close values.</div>
-    </div>
-
-    <div class="card connect-card">
-      <div class="card-title">Connect with me</div>
-      <div class="btn-row">
-        <a class="btn-soft" href="{{ social.github }}" target="_blank">🐙 GitHub</a>
-        <a class="btn-soft" href="{{ social.linkedin }}" target="_blank">💼 LinkedIn</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-{% if result %}
-<section class="result-section">
-  <div class="card result-card">
-
-    <div class="result-top">
-      <div class="result-main">
-        <div class="result-kicker">PREDICTION RESULT</div>
-        <div class="result-head">
-          <span class="dir">{{ result.direction }}</span>
-          <span class="sep">•</span>
-          <span class="conf">{{ result.confidence }}% confidence</span>
-        </div>
-        <div class="result-sub">
-          {{ result.horizon }} • {{ result.state }} • Purity {{ result.purity }}
-        </div>
-      </div>
-
-      <div class="badge {{ 'up' if result.direction == 'UP' else 'down' }}">
-        <span>{{ result.direction }}</span>
+<body>
+  <!-- ✅ TOPBAR -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo"></div>
+      <div>
+        <div class="brand-title">Silver Predictor</div>
+        <div class="brand-sub">AI Direction Forecast • Purity • State Premium</div>
       </div>
     </div>
 
-    <!-- ✅ CURRENT MARKET PRICE -->
-    <div class="price-row">
-      <div class="price-title">Current Silver Price (Market Reference)</div>
-      <div class="price-value">
-        ₹{{ result.current_per_g }} <span>/g</span>
-        <span class="dot">•</span>
-        ₹{{ result.current_per_kg }} <span>/kg</span>
-      </div>
-    </div>
+    <nav class="navlinks">
+      <a href="{{ url_for('index') }}">Dashboard</a>
+      <a href="{{ url_for('about') }}">About</a>
+      <a href="{{ url_for('reviews') }}">Reviews</a>
 
-    <!-- ✅ PREDICTED PRICE (same style as current) -->
-    <div class="price-row predicted-row">
-      <div class="price-title">Predicted Silver Price (For Selected State + Purity)</div>
-      <div class="price-value">
-        ₹{{ result.prices.per_g }} <span>/g</span>
-        <span class="dot">•</span>
-        ₹{{ result.predicted_per_kg }} <span>/kg</span>
-      </div>
-      <div class="mini muted">
-        Includes state premium + purity factor. (Not guaranteed)
-      </div>
-    </div>
+      <a class="pill" href="{{ social.github }}" target="_blank" rel="noopener">GitHub</a>
+      <a class="pill" href="{{ social.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>
+    </nav>
+  </header>
 
-    <!-- ✅ Amounts -->
-    <div class="prices-strip">
-      <div><span class="tag">1g amount</span> ₹{{ result.prices.p1 }}</div>
-      <div><span class="tag">10g amount</span> ₹{{ result.prices.p10 }}</div>
-      <div><span class="tag">100g amount</span> ₹{{ result.prices.p100 }}</div>
-    </div>
+  <main class="page">
+    <!-- ✅ Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="toastwrap">
+          {% for category, message in messages %}
+            <div class="toast {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
 
-    <div class="note">
-      ⚠️ These are AI-based estimates using historical trends and live market data.
-      Treat them as a smart reference — <b>not guaranteed rates</b>.
-    </div>
-  </div>
+    {% block content %}{% endblock %}
+  </main>
 
-  <div class="card donut-card">
-    <div class="card-title">Model Confidence (UP vs DOWN)</div>
-    <div class="donut-wrap">
-      <canvas id="confChart"></canvas>
-    </div>
-    <div class="card-foot muted">
-      UP probability: {{ result.proba_up }}%
-    </div>
-  </div>
-</section>
-{% endif %}
-
-<script>
-  // Trend chart
-  const labels = {{ (labels if labels else []) | tojson }};
-  const values = {{ (values if values else []) | tojson }};
-
-  const priceCanvas = document.getElementById("priceChart");
-  if (priceCanvas && labels.length && values.length) {
-    new Chart(priceCanvas, {
-      type: "line",
-      data: {
-        labels: labels,
-        datasets: [{
-          label: "Silver Close (USD/oz)",
-          data: values,
-          tension: 0.35,
-          borderWidth: 2,
-          pointRadius: 0
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { ticks: { maxTicksLimit: 8 } },
-          y: { ticks: { maxTicksLimit: 6 } }
-        }
-      }
-    });
-  }
-
-  // Confidence donut
-  {% if result %}
-    const upProb = {{ (result["proba_up"] if result and "proba_up" in result else 50) | tojson }};
-    const downProb = 100 - upProb;
-
-    const confCanvas = document.getElementById("confChart");
-    if (confCanvas) {
-      new Chart(confCanvas, {
-        type: "doughnut",
-        data: {
-          labels: ["UP", "DOWN"],
-          datasets: [{
-            data: [upProb, downProb],
-            borderWidth: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          cutout: "70%",
-          plugins: {
-            legend: { display: false },
-            tooltip: { enabled: true }
-          }
-        }
-      });
-    }
-  {% endif %}
-</script>
-
-{% endblock %}
+  <footer class="footer">
+    ⚠️ Note: All prices are AI-based estimates using historical trends + live market data. Not guaranteed.
+  </footer>
+</body>
+</html>
