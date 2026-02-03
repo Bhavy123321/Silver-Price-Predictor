@@ -12,6 +12,7 @@
       and estimate prices for <b>1g / 10g / 100g</b>.
     </p>
 
+    <!-- FORM -->
     <div class="card form-card">
       <form method="POST" class="form-grid">
 
@@ -60,14 +61,14 @@
 
         <button class="btn-primary" type="submit">Run Prediction</button>
         <div class="tip">Tip: Day/Month predictions are usually more stable than Hour predictions.</div>
-
       </form>
     </div>
 
-    <!-- ✅ RESULT SECTION (THIS WAS MISSING) -->
+    <!-- ✅ RESULT (NEW UI STYLE) -->
     {% if result %}
-    <div class="card result-card" style="margin-top:14px;">
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+    <div class="card" style="margin-top:14px;">
+
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
         <div>
           <div style="opacity:.75; font-weight:900; font-size:12px; letter-spacing:.35px;">PREDICTION RESULT</div>
           <div style="font-size:34px; font-weight:950; margin-top:6px;">
@@ -83,48 +84,72 @@
         </div>
       </div>
 
+      <!-- ✅ CURRENT PRICE ROW -->
       <div style="margin-top:14px; padding:14px; border-radius:18px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03);">
-        <div style="opacity:.75; font-weight:900; font-size:12px;">CURRENT SILVER PRICE (MARKET REFERENCE)</div>
-        <div style="font-size:26px; font-weight:950; margin-top:4px;">
-          ₹{{ "%.2f"|format(result.base_inr_kg/1000) }} / g &nbsp; • &nbsp; ₹{{ "%.2f"|format(result.base_inr_kg) }} / kg
+        <div style="opacity:.75; font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:.35px;">
+          Current Silver Price (Market Reference)
+        </div>
+        <div style="font-size:26px; font-weight:950; margin-top:6px;">
+          ₹{{ "%.2f"|format(result.base_inr_kg/1000) }} / g
+          <span style="opacity:.55; font-weight:800; margin:0 8px;">•</span>
+          ₹{{ "%.2f"|format(result.base_inr_kg) }} / kg
         </div>
       </div>
 
-      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:14px;">
-        <div class="card" style="padding:14px;">
-          <div style="opacity:.75; font-weight:900; font-size:12px;">BASE (INR/KG)</div>
-          <div style="font-size:24px; font-weight:950; margin-top:6px;">₹{{ result.base_inr_kg }}</div>
-          <div style="opacity:.7; margin-top:4px;">Market INR/kg (converted)</div>
+      <!-- ✅ PREDICTED PRICE ROW (requested) -->
+      <div style="margin-top:12px; padding:14px; border-radius:18px;
+                  border:1px solid rgba(46,229,157,.35); background:rgba(46,229,157,.08);">
+        <div style="opacity:.80; font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:.35px;">
+          Predicted Silver Price (Estimated)
         </div>
-
-        <div class="card" style="padding:14px;">
-          <div style="opacity:.75; font-weight:900; font-size:12px;">PREMIUM (₹/KG)</div>
-          <div style="font-size:24px; font-weight:950; margin-top:6px;">₹{{ result.premium_per_kg }}</div>
-          <div style="opacity:.7; margin-top:4px;">State/wholesale premium</div>
+        <div style="font-size:26px; font-weight:950; margin-top:6px;">
+          ₹{{ "%.2f"|format(result.prices.per_g) }} / g
+          <span style="opacity:.55; font-weight:800; margin:0 8px;">•</span>
+          ₹{{ "%.2f"|format(result.prices.per_g*1000) }} / kg
         </div>
-
-        <div class="card" style="padding:14px; border-color: rgba(46,229,157,.35); background: rgba(46,229,157,.07);">
-          <div style="opacity:.75; font-weight:900; font-size:12px;">PREDICTED SILVER PRICE (₹/G)</div>
-          <div style="font-size:24px; font-weight:950; margin-top:6px;">₹{{ result.prices.per_g }}</div>
-          <div style="opacity:.7; margin-top:4px;">(Base + Premium) per gram</div>
+        <div style="opacity:.70; margin-top:6px;">
+          Includes <b>state premium</b> + selected <b>purity</b> factor.
         </div>
       </div>
 
-      <div style="margin-top:14px; padding:14px; border-radius:18px; border:1px dashed rgba(255,255,255,.18); background:rgba(0,0,0,.18);">
-        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-          <span class="pill" style="padding:8px 12px;">1g amount</span>
-          <strong style="font-size:18px;">₹{{ result.prices.p1 }}</strong>
+      <!-- ✅ AMOUNTS LINE (clean bottom row) -->
+      <div style="margin-top:12px; padding:14px; border-radius:18px;
+                  border:1px dashed rgba(255,255,255,.18); background:rgba(0,0,0,.18);">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <span class="pill" style="padding:8px 12px;">1g</span>
+            <strong style="font-size:18px;">₹{{ result.prices.p1 }}</strong>
 
-          <span class="pill" style="padding:8px 12px;">10g amount</span>
-          <strong style="font-size:18px;">₹{{ result.prices.p10 }}</strong>
+            <span class="pill" style="padding:8px 12px;">10g</span>
+            <strong style="font-size:18px;">₹{{ result.prices.p10 }}</strong>
 
-          <span class="pill" style="padding:8px 12px;">100g amount</span>
-          <strong style="font-size:18px;">₹{{ result.prices.p100 }}</strong>
+            <span class="pill" style="padding:8px 12px;">100g</span>
+            <strong style="font-size:18px;">₹{{ result.prices.p100 }}</strong>
+          </div>
         </div>
       </div>
 
-      <div style="margin-top:14px; padding:14px; border-radius:18px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03); color:rgba(234,240,255,.82);">
-        ⚠️ These are AI-based estimates using historical trends + live market data. Treat them as a smart reference — not guaranteed rates.
+      <!-- (Optional) Hidden breakdown (NOT on main view) -->
+      <details style="margin-top:12px; opacity:.85;">
+        <summary style="cursor:pointer; font-weight:900;">Show calculation breakdown</summary>
+        <div style="margin-top:10px; display:grid; gap:10px;">
+          <div style="padding:12px; border-radius:14px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03);">
+            <b>Base (INR/kg):</b> ₹{{ result.base_inr_kg }} (converted from SI=F + USDINR)
+          </div>
+          <div style="padding:12px; border-radius:14px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03);">
+            <b>Premium (₹/kg):</b> ₹{{ result.premium_per_kg }} (state/wholesale demo premium)
+          </div>
+          <div style="padding:12px; border-radius:14px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03);">
+            <b>Predicted rate (₹/g):</b> ₹{{ result.prices.per_g }} = (Base + Premium)/1000 after purity factor
+          </div>
+        </div>
+      </details>
+
+      <!-- Disclaimer -->
+      <div style="margin-top:14px; padding:14px; border-radius:18px;
+                  border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03); color:rgba(234,240,255,.82);">
+        ⚠️ These are AI-based estimates using historical trends + live market data.
+        Treat them as a smart reference — not guaranteed rates.
       </div>
 
     </div>
@@ -143,8 +168,8 @@
     <div class="card connect-card">
       <div class="card-title">Connect with me</div>
       <div class="btn-row">
-        <a class="btn-soft" href="{{ social.github }}" target="_blank">🐙 GitHub</a>
-        <a class="btn-soft" href="{{ social.linkedin }}" target="_blank">💼 LinkedIn</a>
+        <a class="btn-soft" href="{{ social.github }}" target="_blank" rel="noopener">🐙 GitHub</a>
+        <a class="btn-soft" href="{{ social.linkedin }}" target="_blank" rel="noopener">💼 LinkedIn</a>
       </div>
     </div>
   </div>
