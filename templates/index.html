@@ -45,7 +45,7 @@
           <ul class="info-list">
             <li>✅ Direction + Confidence</li>
             <li>✅ Trend chart</li>
-            <li>✅ Estimated prices (1g/10g/100g)</li>
+            <li>✅ Predicted prices (1g/10g/100g)</li>
           </ul>
         </div>
 
@@ -93,13 +93,21 @@
       </div>
     </div>
 
-    <!-- ✅ CURRENT PRICE LINE (TOP) -->
+    <!-- ✅ CURRENT LIVE MARKET PRICE -->
     <div class="current-line">
       <div class="current-title">Current Silver Price (Market Reference)</div>
       <div class="current-value">
         ₹{{ result.current_per_g }} <span>/g</span>
         <span class="dot">•</span>
         ₹{{ result.current_per_kg }} <span>/kg</span>
+      </div>
+    </div>
+
+    <!-- ✅ PREDICTED PRICE HEADING -->
+    <div class="predicted-line">
+      <div class="predicted-title">Predicted Silver Price (State Premium + Purity Applied)</div>
+      <div class="predicted-sub muted">
+        This is the estimated rate for your selected state/UT & purity (includes premium).
       </div>
     </div>
 
@@ -113,17 +121,17 @@
         <div class="stat-label">PREMIUM (₹/KG)</div>
         <div class="stat-value">₹{{ result.premium_per_kg }}</div>
       </div>
-      <div class="stat">
-        <div class="stat-label">FINAL (₹/G)</div>
+      <div class="stat stat-highlight">
+        <div class="stat-label">PREDICTED (₹/G)</div>
         <div class="stat-value">₹{{ result.prices.per_g }}</div>
       </div>
     </div>
 
-    <!-- ✅ REMOVE 10g CARD: Prices in ONE bottom strip line -->
+    <!-- ✅ Predicted prices strip -->
     <div class="prices-strip">
-      <div><span class="tag">1g</span> ₹{{ result.prices.p1 }}</div>
-      <div><span class="tag">10g</span> ₹{{ result.prices.p10 }}</div>
-      <div><span class="tag">100g</span> ₹{{ result.prices.p100 }}</div>
+      <div><span class="tag">Predicted 1g</span> ₹{{ result.prices.p1 }}</div>
+      <div><span class="tag">Predicted 10g</span> ₹{{ result.prices.p10 }}</div>
+      <div><span class="tag">Predicted 100g</span> ₹{{ result.prices.p100 }}</div>
     </div>
 
     <div class="note">
@@ -132,7 +140,6 @@
     </div>
   </div>
 
-  <!-- Right side: donut smaller -->
   <div class="card donut-card">
     <div class="card-title">Model Confidence (UP vs DOWN)</div>
     <div class="donut-wrap">
@@ -146,7 +153,6 @@
 {% endif %}
 
 <script>
-  // ---------- Trend Chart ----------
   const labels = {{ (labels if labels else []) | tojson }};
   const values = {{ (values if values else []) | tojson }};
 
@@ -176,7 +182,6 @@
     });
   }
 
-  // ---------- Confidence Donut ----------
   {% if result %}
     const upProb = {{ (result["proba_up"] if result and "proba_up" in result else 50) | tojson }};
     const downProb = 100 - upProb;
