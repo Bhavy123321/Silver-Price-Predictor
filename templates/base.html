@@ -1,74 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>{{ title if title else "Silver Predictor" }}</title>
-
-    <!-- Font -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Silver Predictor</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-
 <body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo"></div>
+      <div>
+        <div class="brand-title">Silver Predictor</div>
+        <div class="brand-sub">AI Direction Forecast • Purity • State Premium</div>
+      </div>
+    </div>
 
-    <header class="topbar">
-        <div class="wrap topbar-inner">
-            <div class="brand">
-                <div class="logo"></div>
-                <div>
-                    <div class="brand-name">Silver Predictor</div>
-                    <div class="brand-sub">AI Direction Forecast • Purity • State Premium</div>
-                </div>
-            </div>
+    <nav class="navlinks">
+      <a href="{{ url_for('index') }}">Dashboard</a>
+      <a href="{{ url_for('about') }}">About</a>
+      <a href="{{ url_for('reviews') }}">Reviews</a>
 
-            <nav class="nav">
-                <a href="{{ url_for('index') }}">Dashboard</a>
-                <a href="{{ url_for('about') }}">About</a>
-                <a href="{{ url_for('reviews') }}">Reviews</a>
-                <a class="pill-btn" href="{{ social.github }}" target="_blank">GitHub</a>
-                <a class="pill-btn" href="{{ social.linkedin }}" target="_blank">LinkedIn</a>
-            </nav>
+      <a class="pill" href="{{ social.github }}" target="_blank">GitHub</a>
+      <a class="pill" href="{{ social.linkedin }}" target="_blank">LinkedIn</a>
+    </nav>
+  </header>
+
+  <main class="page">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="toastwrap">
+          {% for category, message in messages %}
+            <div class="toast {{ category }}">{{ message }}</div>
+          {% endfor %}
         </div>
-    </header>
+      {% endif %}
+    {% endwith %}
 
-    <main class="wrap">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        <div class="flash-area fade-in">
-            {% for category, message in messages %}
-            <div class="flash {{ category }}">{{ message }}</div>
-            {% endfor %}
-        </div>
-        {% endif %}
-        {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
 
-        {% block content %}{% endblock %}
-    </main>
-
-    <footer class="footer">
-        <div class="wrap footer-inner">
-            <div>
-                <div class="footer-title">Silver Predictor</div>
-                <div class="footer-sub">Educational ML Project • Not guaranteed financial advice</div>
-            </div>
-
-            <div class="footer-links">
-                <a href="{{ url_for('about') }}">About</a>
-                <a href="{{ url_for('reviews') }}">Reviews</a>
-                <a href="{{ social.github }}" target="_blank">GitHub</a>
-                <a href="{{ social.linkedin }}" target="_blank">LinkedIn</a>
-            </div>
-        </div>
-    </footer>
-
+  <footer class="footer">
+    <div>© {{ datetime.utcnow().year if datetime else "2026" }} Silver Predictor • Built with Flask + ML</div>
+  </footer>
 </body>
-
 </html>
