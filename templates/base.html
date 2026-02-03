@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Silver Predictor</title>
 
-  <!-- ✅ Flask-safe CSS loading -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=10">
+  <!-- ✅ Must be like this in Flask -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=999">
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -14,7 +14,7 @@
 
 <body>
 
-  <!-- ===== TOP NAVBAR ===== -->
+  <!-- ✅ Styled Navbar (this must appear) -->
   <header class="topbar">
     <div class="brand">
       <div class="logo"></div>
@@ -29,15 +29,12 @@
       <a href="{{ url_for('about') }}">About</a>
       <a href="{{ url_for('reviews') }}">Reviews</a>
 
-      <a class="pill" href="{{ social.github }}" target="_blank">GitHub</a>
-      <a class="pill" href="{{ social.linkedin }}" target="_blank">LinkedIn</a>
+      <a class="pill" href="{{ social.github }}" target="_blank" rel="noopener">GitHub</a>
+      <a class="pill" href="{{ social.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>
     </nav>
   </header>
 
-  <!-- ===== MAIN CONTENT ===== -->
   <main class="page">
-
-    <!-- Flash messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="toastwrap">
@@ -51,9 +48,8 @@
     {% block content %}{% endblock %}
   </main>
 
-  <!-- ===== FOOTER ===== -->
   <footer class="footer">
-    ⚠️ Note: All prices are AI-based estimates using historical trends and live market data. Not guaranteed.
+    ⚠️ Note: All prices are AI-based estimates using historical trends + live market data. Not guaranteed.
   </footer>
 
 </body>
