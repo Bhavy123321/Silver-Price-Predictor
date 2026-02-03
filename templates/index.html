@@ -6,7 +6,7 @@
     <h1 class="title">Smart Silver Forecast</h1>
     <p class="subtitle">
       Choose your <b>State/UT</b>, <b>Purity</b> and <b>Horizon</b>.
-      We predict the direction <span class="chip">UP/DOWN</span> with confidence and show estimated prices for
+      We predict direction <span class="chip">UP/DOWN</span> with confidence and show estimated prices for
       <b>1g / 10g / 100g</b>.
     </p>
 
@@ -45,7 +45,7 @@
           <ul class="info-list">
             <li>✅ Direction + Confidence</li>
             <li>✅ Trend chart</li>
-            <li>✅ Predicted prices (1g/10g/100g)</li>
+            <li>✅ Estimated prices (1g/10g/100g)</li>
           </ul>
         </div>
 
@@ -75,6 +75,7 @@
 {% if result %}
 <section class="result-section">
   <div class="card result-card">
+
     <div class="result-top">
       <div class="result-main">
         <div class="result-kicker">PREDICTION RESULT</div>
@@ -93,7 +94,7 @@
       </div>
     </div>
 
-    <!-- ✅ CURRENT LIVE MARKET PRICE -->
+    <!-- ✅ CURRENT MARKET REFERENCE -->
     <div class="current-line">
       <div class="current-title">Current Silver Price (Market Reference)</div>
       <div class="current-value">
@@ -103,40 +104,37 @@
       </div>
     </div>
 
-    <!-- ✅ PREDICTED PRICE HEADING -->
-    <div class="predicted-line">
-      <div class="predicted-title">Predicted Silver Price (State Premium + Purity Applied)</div>
-      <div class="predicted-sub muted">
-        This is the estimated rate for your selected state/UT & purity (includes premium).
-      </div>
-    </div>
-
-    <!-- Stats cards -->
+    <!-- ✅ BASE / PREMIUM / FINAL -->
     <div class="grid3">
       <div class="stat">
         <div class="stat-label">BASE (INR/KG)</div>
         <div class="stat-value">₹{{ result.base_inr_kg }}</div>
+        <div class="mini muted">Market INR/kg (converted)</div>
       </div>
+
       <div class="stat">
         <div class="stat-label">PREMIUM (₹/KG)</div>
         <div class="stat-value">₹{{ result.premium_per_kg }}</div>
+        <div class="mini muted">State/wholesale premium</div>
       </div>
+
       <div class="stat stat-highlight">
-        <div class="stat-label">PREDICTED (₹/G)</div>
+        <div class="stat-label">FINAL RATE (₹/G)</div>
         <div class="stat-value">₹{{ result.prices.per_g }}</div>
+        <div class="mini muted">(Base + Premium) per gram</div>
       </div>
     </div>
 
-    <!-- ✅ Predicted prices strip -->
+    <!-- ✅ THIRD ROW FIXED: ONLY FINAL AMOUNTS -->
     <div class="prices-strip">
-      <div><span class="tag">Predicted 1g</span> ₹{{ result.prices.p1 }}</div>
-      <div><span class="tag">Predicted 10g</span> ₹{{ result.prices.p10 }}</div>
-      <div><span class="tag">Predicted 100g</span> ₹{{ result.prices.p100 }}</div>
+      <div><span class="tag">1g amount</span> ₹{{ result.prices.p1 }}</div>
+      <div><span class="tag">10g amount</span> ₹{{ result.prices.p10 }}</div>
+      <div><span class="tag">100g amount</span> ₹{{ result.prices.p100 }}</div>
     </div>
 
     <div class="note">
-      ⚠️ These prices are AI-based predictions using historical trends and live market data.
-      Use them as a smart reference — <b>not as 100% guaranteed rates</b>.
+      ⚠️ These are AI-based estimates using historical trends and live market data.
+      Treat them as a smart reference — <b>not guaranteed rates</b>.
     </div>
   </div>
 
@@ -153,6 +151,7 @@
 {% endif %}
 
 <script>
+  // Trend chart
   const labels = {{ (labels if labels else []) | tojson }};
   const values = {{ (values if values else []) | tojson }};
 
@@ -182,6 +181,7 @@
     });
   }
 
+  // Confidence donut
   {% if result %}
     const upProb = {{ (result["proba_up"] if result and "proba_up" in result else 50) | tojson }};
     const downProb = 100 - upProb;
