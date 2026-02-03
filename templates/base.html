@@ -5,13 +5,8 @@
   <title>Silver Predictor</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-  <!-- Main CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <!-- Main JS -->
   <script defer src="{{ url_for('static', filename='app.js') }}"></script>
 </head>
 
@@ -26,13 +21,15 @@
     </div>
 
     <nav class="nav">
+      <!-- ✅ Dashboard MUST be "/" -->
       <a class="nav-link" href="{{ url_for('index') }}">Dashboard</a>
       <a class="nav-link" href="{{ url_for('about') }}">About</a>
       <a class="nav-link" href="{{ url_for('reviews') }}">Reviews</a>
+
       <a class="nav-pill" href="{{ social.github }}" target="_blank" rel="noopener">GitHub</a>
       <a class="nav-pill" href="{{ social.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>
 
-      <button class="mode-btn" type="button" id="themeToggle" aria-label="Toggle theme">
+      <button class="mode-btn" type="button" id="themeToggle">
         <span class="mode-icon" id="themeIcon">🌙</span>
         <span class="mode-text" id="themeText">Dark</span>
       </button>
