@@ -3,56 +3,54 @@
 
 <section class="reviews-page">
 
-  <!-- =====================
-       LEAVE A REVIEW
-  ====================== -->
   <div class="card review-form-card">
     <h2 class="section-title">Leave a Review</h2>
 
     <form method="POST" class="review-form">
 
-      <input
-        type="text"
-        name="name"
-        placeholder="Your name"
-        required
-      />
+      <div class="grid-2">
+        <div class="field">
+          <label>Your name</label>
+          <input type="text" name="name" placeholder="Enter your name" required>
+        </div>
 
-      <!-- ⭐ STAR RATING -->
-      <div class="rating">
-        <input type="radio" id="star5" name="rating" value="5" checked>
-        <label for="star5">★</label>
+        <div class="field">
+          <label>Rating</label>
 
-        <input type="radio" id="star4" name="rating" value="4">
-        <label for="star4">★</label>
+          <!-- ⭐ Stars (radio inputs hidden by CSS) -->
+          <div class="stars">
+            <input type="radio" id="rate-5" name="rating" value="5" checked>
+            <label for="rate-5" title="5 stars">★</label>
 
-        <input type="radio" id="star3" name="rating" value="3">
-        <label for="star3">★</label>
+            <input type="radio" id="rate-4" name="rating" value="4">
+            <label for="rate-4" title="4 stars">★</label>
 
-        <input type="radio" id="star2" name="rating" value="2">
-        <label for="star2">★</label>
+            <input type="radio" id="rate-3" name="rating" value="3">
+            <label for="rate-3" title="3 stars">★</label>
 
-        <input type="radio" id="star1" name="rating" value="1">
-        <label for="star1">★</label>
+            <input type="radio" id="rate-2" name="rating" value="2">
+            <label for="rate-2" title="2 stars">★</label>
+
+            <input type="radio" id="rate-1" name="rating" value="1">
+            <label for="rate-1" title="1 star">★</label>
+          </div>
+
+          <div class="stars-hint">Click to select rating</div>
+        </div>
       </div>
 
-      <textarea
-        name="message"
-        placeholder="Share your experience..."
-        rows="3"
-        required
-      ></textarea>
+      <div class="field">
+        <label>Your feedback</label>
+        <textarea name="message" rows="4" placeholder="Share your experience..." required></textarea>
+      </div>
 
-      <button class="btn-primary" type="submit">
-        Submit Review
-      </button>
+      <div class="actions">
+        <button class="btn-primary" type="submit">Submit Review</button>
+      </div>
 
     </form>
   </div>
 
-  <!-- =====================
-       RECENT REVIEWS
-  ====================== -->
   <div class="card reviews-list-card">
     <h2 class="section-title">Recent Reviews</h2>
 
@@ -60,18 +58,19 @@
       <div class="reviews-list">
         {% for r in reviews %}
           <div class="review-item">
-            <div class="review-header">
-              <div class="review-name">{{ r[0] }}</div>
-              <div class="review-rating">
+            <div class="review-top">
+              <div class="review-user">
+                <div class="review-name">{{ r[0] }}</div>
+                <div class="review-date">{{ r[3] }}</div>
+              </div>
+
+              <div class="review-stars">
                 {% for _ in range(r[1]) %}★{% endfor %}
+                {% for _ in range(5 - r[1]) %}☆{% endfor %}
               </div>
             </div>
 
-            <div class="review-date">
-              {{ r[3] }}
-            </div>
-
-            <div class="review-message">
+            <div class="review-msg">
               {{ r[2] }}
             </div>
           </div>
