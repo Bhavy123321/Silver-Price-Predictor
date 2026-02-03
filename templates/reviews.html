@@ -1,56 +1,41 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="page">
-    <div class="grid2">
-        <div class="card page-card">
-            <h2>Leave a Review</h2>
-            <p class="muted">Your feedback helps improve the project UI and prediction experience.</p>
+<div class="grid2">
+  <div class="card page-card">
+    <div class="card-title">Leave a Review</div>
+    <form method="POST" class="review-form">
+      <input name="name" placeholder="Your name" required />
+      <select name="rating">
+        <option value="5">⭐⭐⭐⭐⭐ (5)</option>
+        <option value="4">⭐⭐⭐⭐ (4)</option>
+        <option value="3">⭐⭐⭐ (3)</option>
+        <option value="2">⭐⭐ (2)</option>
+        <option value="1">⭐ (1)</option>
+      </select>
+      <textarea name="message" placeholder="Your feedback..." required></textarea>
+      <button class="btn-primary" type="submit">Submit Review</button>
+    </form>
+  </div>
 
-            <form method="POST" class="review-form">
-                <label>Your Name</label>
-                <input type="text" name="name" placeholder="Enter your name" required>
-
-                <label>Rating</label>
-                <select name="rating" required>
-                    <option value="5">⭐⭐⭐⭐⭐ (5)</option>
-                    <option value="4">⭐⭐⭐⭐ (4)</option>
-                    <option value="3">⭐⭐⭐ (3)</option>
-                    <option value="2">⭐⭐ (2)</option>
-                    <option value="1">⭐ (1)</option>
-                </select>
-
-                <label>Your Review</label>
-                <textarea name="message" rows="5" placeholder="Write your review..." required></textarea>
-
-                <button class="btn-primary" type="submit">Submit Review</button>
-            </form>
-        </div>
-
-        <div class="card page-card">
-            <h2>User Reviews</h2>
-            <p class="muted">Latest reviews from users.</p>
-
-            {% if reviews and reviews|length > 0 %}
-            <div class="reviews-list">
-                {% for name, rating, message, created_at in reviews %}
-                <div class="review-item">
-                    <div class="review-head">
-                        <div class="review-name">{{ name }}</div>
-                        <div class="review-date">{{ created_at }}</div>
-                    </div>
-                    <div class="review-rating">
-                        {% for i in range(rating) %}⭐{% endfor %}
-                    </div>
-                    <div class="review-msg">{{ message }}</div>
-                </div>
-                {% endfor %}
+  <div class="card page-card">
+    <div class="card-title">Recent Reviews</div>
+    {% if reviews and reviews|length %}
+      <div class="review-list">
+        {% for r in reviews %}
+          <div class="review-item">
+            <div class="review-head">
+              <b>{{ r[0] }}</b>
+              <span class="muted">⭐ {{ r[1] }}/5 • {{ r[3] }}</span>
             </div>
-            {% else %}
-            <div class="muted">No reviews yet. Be the first!</div>
-            {% endif %}
-        </div>
-    </div>
+            <div class="muted">{{ r[2] }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="muted">No reviews yet. Be the first 😊</div>
+    {% endif %}
+  </div>
 </div>
 
 {% endblock %}
