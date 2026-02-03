@@ -3,12 +3,11 @@
 
 <section class="hero">
 
-  <!-- LEFT SIDE -->
   <div class="hero-left">
     <h1 class="title">Smart Silver Forecast</h1>
     <p class="subtitle">
       Choose your <b>State/UT</b>, <b>Purity</b> and <b>Horizon</b>.
-      We predict direction <span class="chip">UP / DOWN</span> with confidence
+      We predict direction <span class="chip">UP/DOWN</span> with confidence
       and estimate prices for <b>1g / 10g / 100g</b>.
     </p>
 
@@ -20,7 +19,7 @@
           <div class="select-wrap">
             <select name="state" required>
               {% for s in states %}
-                <option value="{{ s }}">{{ s }}</option>
+                <option value="{{ s }}" {% if result and result.state == s %}selected{% endif %}>{{ s }}</option>
               {% endfor %}
             </select>
           </div>
@@ -52,24 +51,20 @@
         <div class="field info-box">
           <div class="info-title">What you’ll get</div>
           <ul class="info-list">
-            <li>✔ Direction & confidence</li>
-            <li>✔ Silver trend chart</li>
-            <li>✔ Estimated prices (1g / 10g / 100g)</li>
+            <li>✅ Direction + Confidence</li>
+            <li>✅ Trend chart</li>
+            <li>✅ Estimated prices (1g/10g/100g)</li>
           </ul>
         </div>
 
         <button class="btn-primary" type="submit">Run Prediction</button>
-        <div class="tip">
-          Tip: Day & Month predictions are usually more stable than Hour predictions.
-        </div>
+        <div class="tip">Tip: Day/Month predictions are usually more stable than Hour predictions.</div>
 
       </form>
     </div>
   </div>
 
-  <!-- RIGHT SIDE -->
   <div class="hero-right">
-
     <div class="card chart-card">
       <div class="card-title">Silver Trend (Last ~48 Hours)</div>
       <canvas id="priceChart"></canvas>
@@ -83,8 +78,38 @@
         <a class="btn-soft" href="{{ social.linkedin }}" target="_blank">💼 LinkedIn</a>
       </div>
     </div>
-
   </div>
 </section>
+
+<script>
+  const labels = {{ (labels if labels else []) | tojson }};
+  const values = {{ (values if values else []) | tojson }};
+
+  const priceCanvas = document.getElementById("priceChart");
+  if (priceCanvas && labels.length && values.length) {
+    new Chart(priceCanvas, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [{
+          label: "Silver Close (USD/oz)",
+          data: values,
+          tension: 0.35,
+          borderWidth: 2,
+          pointRadius: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { maxTicksLimit: 8 } },
+          y: { ticks: { maxTicksLimit: 6 } }
+        }
+      }
+    });
+  }
+</script>
 
 {% endblock %}
