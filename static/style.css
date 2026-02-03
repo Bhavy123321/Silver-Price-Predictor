@@ -325,10 +325,10 @@
   justify-content: flex-start;
 }
 
-/* ⭐ STAR RATING (THIS FIXES YOUR RADIO DOTS) */
+/* ⭐ STAR RATING */
 .stars{
   display: inline-flex;
-  flex-direction: row-reverse; /* important for hover fill */
+  flex-direction: row-reverse;
   gap: 6px;
   align-items: center;
   padding: 10px 12px;
@@ -337,9 +337,7 @@
   background: rgba(255,255,255,.05);
 }
 
-.stars input{
-  display: none; /* hide circles */
-}
+.stars input{ display:none; }
 
 .stars label{
   font-size: 24px;
@@ -354,13 +352,11 @@
   transform: translateY(-1px) scale(1.05);
 }
 
-/* Fill on hover */
 .stars label:hover,
 .stars label:hover ~ label{
   color: #ffd54a;
 }
 
-/* Fill on checked */
 .stars input:checked ~ label{
   color: #ffd54a;
 }
@@ -421,11 +417,10 @@
   opacity: .8;
 }
 
-/* ✅ Responsive */
 @media (max-width: 768px){
-  .grid-2{
-    grid-template-columns: 1fr;
-  }
+  .grid-2{ grid-template-columns: 1fr; }
 }
+
+
 
 
