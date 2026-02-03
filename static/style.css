@@ -1,426 +1,139 @@
-{% extends "base.html" %}
-{% block content %}
-
-<section class="hero">
-
-  <!-- LEFT -->
-  <div class="hero-left">
-    <h1 class="title">Smart Silver Forecast</h1>
-    <p class="subtitle">
-      Choose your <b>State/UT</b>, <b>Purity</b> and <b>Horizon</b>.
-      We predict direction <span class="chip">UP/DOWN</span> with confidence
-      and estimate prices for <b>1g / 10g / 100g</b>.
-    </p>
-
-    <!-- FORM -->
-    <div class="card form-card">
-      <form method="POST" class="form-grid">
-
-        <div class="field">
-          <label>State / UT</label>
-          <div class="select-wrap">
-            <select name="state" required>
-              {% for s in states %}
-                <option value="{{ s }}" {% if result and result.state == s %}selected{% endif %}>{{ s }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Horizon</label>
-          <div class="select-wrap">
-            <select name="horizon" required>
-              <option value="1h" {% if result and "Hour" in result.horizon %}selected{% endif %}>Next Hour</option>
-              <option value="1d" {% if result and "Day" in result.horizon %}selected{% endif %}>Next Day</option>
-              <option value="1m" {% if result and "Month" in result.horizon %}selected{% endif %}>Next Month</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Silver Purity</label>
-          <div class="select-wrap">
-            <select name="purity" required>
-              <option value="999" {% if result and result.purity == "999" %}selected{% endif %}>999 (Fine Silver)</option>
-              <option value="925" {% if result and result.purity == "925" %}selected{% endif %}>925 (Sterling)</option>
-              <option value="900" {% if result and result.purity == "900" %}selected{% endif %}>900</option>
-              <option value="800" {% if result and result.purity == "800" %}selected{% endif %}>800</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="field info-box">
-          <div class="info-title">What you’ll get</div>
-          <ul class="info-list">
-            <li>✅ Direction + Confidence</li>
-            <li>✅ Trend chart</li>
-            <li>✅ Estimated prices (1g/10g/100g)</li>
-          </ul>
-        </div>
-
-        <button class="btn-primary" type="submit">Run Prediction</button>
-        <div class="tip">Tip: Day/Month predictions are usually more stable than Hour predictions.</div>
-      </form>
-    </div>
-
-    <!-- ✅ RESULT (NEW UI STYLE) -->
-    {% if result %}
-    <div class="card" id="resultCard" style="margin-top:14px;">
-
-      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-        <div>
-          <div style="opacity:.75; font-weight:900; font-size:12px; letter-spacing:.35px;">PREDICTION RESULT</div>
-          <div style="font-size:34px; font-weight:950; margin-top:6px;">
-            {{ result.direction }} • {{ result.confidence }}% confidence
-          </div>
-          <div style="opacity:.75; margin-top:4px;">
-            {{ result.horizon }} • {{ result.state }} • Purity {{ result.purity }}
-          </div>
-        </div>
-
-        <div class="pill" style="padding:10px 14px;">
-          {{ result.direction }}
-        </div>
-      </div>
-
-      <!-- ✅ CURRENT PRICE ROW -->
-      <div style="margin-top:14px; padding:14px; border-radius:18px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03);">
-        <div style="opacity:.75; font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:.35px;">
-          Current Silver Price (Market Reference)
-        </div>
-        <div style="font-size:26px; font-weight:950; margin-top:6px;">
-          ₹{{ "%.2f"|format(result.base_inr_kg/1000) }} / g
-          <span style="opacity:.55; font-weight:800; margin:0 8px;">•</span>
-          ₹{{ "%.2f"|format(result.base_inr_kg) }} / kg
-        </div>
-      </div>
-
-      <!-- ✅ PREDICTED PRICE ROW -->
-      <div style="margin-top:12px; padding:14px; border-radius:18px;
-                  border:1px solid rgba(46,229,157,.35); background:rgba(46,229,157,.08);">
-        <div style="opacity:.80; font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:.35px;">
-          Predicted Silver Price (Estimated)
-        </div>
-        <div style="font-size:26px; font-weight:950; margin-top:6px;">
-          ₹{{ "%.2f"|format(result.prices.per_g) }} / g
-          <span style="opacity:.55; font-weight:800; margin:0 8px;">•</span>
-          ₹{{ "%.2f"|format(result.prices.per_g*1000) }} / kg
-        </div>
-        <div style="opacity:.70; margin-top:6px;">
-          Includes <b>state premium</b> + selected <b>purity</b> factor.
-        </div>
-      </div>
-
-      <!-- ✅ AMOUNTS LINE -->
-      <div style="margin-top:12px; padding:14px; border-radius:18px;
-                  border:1px dashed rgba(255,255,255,.18); background:rgba(0,0,0,.18);">
-        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-          <span class="pill" style="padding:8px 12px;">1g</span>
-          <strong style="font-size:18px;">₹{{ result.prices.p1 }}</strong>
-
-          <span class="pill" style="padding:8px 12px;">10g</span>
-          <strong style="font-size:18px;">₹{{ result.prices.p10 }}</strong>
-
-          <span class="pill" style="padding:8px 12px;">100g</span>
-          <strong style="font-size:18px;">₹{{ result.prices.p100 }}</strong>
-        </div>
-      </div>
-
-      <!-- Disclaimer -->
-      <div style="margin-top:14px; padding:14px; border-radius:18px;
-                  border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03); color:rgba(234,240,255,.82);">
-        ⚠️ These are AI-based estimates using historical trends + live market data.
-        Treat them as a smart reference — not guaranteed rates.
-      </div>
-
-    </div>
-    {% endif %}
-
-  </div>
-
-  <!-- RIGHT -->
-  <div class="hero-right">
-
-    <!-- Trend chart -->
-    <div class="card chart-card" id="trendCard">
-      <div class="card-title">Silver Trend (Last ~48 Hours)</div>
-      <canvas id="priceChart"></canvas>
-      <div class="card-foot">Source: SI=F hourly close values.</div>
-    </div>
-
-    <!-- ✅ Confidence chart (same height as result container) -->
-    {% if result %}
-    <div class="card" id="confCard" style="margin-top:14px; display:flex; flex-direction:column;">
-      <div class="card-title" style="margin-bottom:10px;">Model Confidence (UP vs DOWN)</div>
-
-      <div style="flex:1; min-height:260px; position:relative;">
-        <canvas id="confChart" style="width:100%; height:100%;"></canvas>
-      </div>
-
-      <div style="opacity:.75; margin-top:10px; font-size:13px;">
-        UP: <b>{{ result.proba_up }}%</b> &nbsp; • &nbsp;
-        DOWN: <b>{{ "%.2f"|format(100 - result.proba_up) }}%</b>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Connect card -->
-    <div class="card connect-card" id="connectCard">
-      <div class="card-title">Connect with me</div>
-      <div class="btn-row">
-        <a class="btn-soft" href="{{ social.github }}" target="_blank" rel="noopener">🐙 GitHub</a>
-        <a class="btn-soft" href="{{ social.linkedin }}" target="_blank" rel="noopener">💼 LinkedIn</a>
-      </div>
-    </div>
-
-  </div>
-
-</section>
-
-<script>
-  // -----------------------------
-  // Trend Chart
-  // -----------------------------
-  const labels = {{ (labels if labels else []) | tojson }};
-  const values = {{ (values if values else []) | tojson }};
-
-  const priceCanvas = document.getElementById("priceChart");
-  if (priceCanvas && labels.length && values.length) {
-    new Chart(priceCanvas, {
-      type: "line",
-      data: {
-        labels: labels,
-        datasets: [{
-          label: "Silver Close (USD/oz)",
-          data: values,
-          tension: 0.35,
-          borderWidth: 2,
-          pointRadius: 0
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { ticks: { maxTicksLimit: 8 } },
-          y: { ticks: { maxTicksLimit: 6 } }
-        }
-      }
-    });
-  }
-
-  // -----------------------------
-  // Confidence Chart + Match Height
-  // -----------------------------
-  const resultExists = {{ (true if result else false) | tojson }};
-  if (resultExists) {
-    const upProb = {{ (result.proba_up if result else 50) | tojson }};
-    const downProb = 100 - upProb;
-
-    const confCanvas = document.getElementById("confChart");
-    if (confCanvas) {
-      new Chart(confCanvas, {
-        type: "doughnut",
-        data: {
-          labels: ["UP", "DOWN"],
-          datasets: [{
-            data: [upProb, downProb],
-            borderWidth: 0,
-            hoverOffset: 6
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: true, position: "bottom" },
-            tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.raw.toFixed(2)}%` } }
-          },
-          cutout: "70%"
-        }
-      });
-    }
-
-    // Match conf card height to result card height (same size)
-    const resultCard = document.getElementById("resultCard");
-    const confCard = document.getElementById("confCard");
-
-    function matchHeight(){
-      if (!resultCard || !confCard) return;
-      // Set conf card height exactly same as result card
-      confCard.style.height = resultCard.offsetHeight + "px";
-    }
-
-    window.addEventListener("load", matchHeight);
-    window.addEventListener("resize", () => {
-      confCard.style.height = "auto"; // reset
-      matchHeight();
-    });
-    matchHeight();
-  }
-</script>
-
-{% endblock %}
-
-/* =========================
-   REVIEWS PAGE (FIXED UI)
-========================= */
-
-.reviews-page{
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 22px 14px 60px;
-  display: grid;
-  gap: 16px;
+/* RESET */
+*{
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Inter, system-ui, sans-serif;
 }
 
-.section-title{
-  font-size: 22px;
+body{
+  background: radial-gradient(1200px 600px at top left, #4b3cff22, transparent),
+              linear-gradient(135deg, #05060c, #061822);
+  color: #eaf0ff;
+  min-height: 100vh;
+}
+
+/* HEADER */
+.header{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 26px;
+}
+
+.logo{
+  font-size: 20px;
   font-weight: 900;
-  margin: 0 0 14px;
-  letter-spacing: .2px;
 }
 
-.review-form{
-  display: grid;
-  gap: 14px;
+.tagline{
+  font-size: 13px;
+  opacity: .8;
 }
 
-.grid-2{
+.nav a{
+  margin-left: 16px;
+  text-decoration: none;
+  color: #8cc4ff;
+  font-weight: 600;
+}
+
+.nav a:hover{
+  color: #fff;
+}
+
+/* LAYOUT */
+.container{
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* HERO */
+.hero{
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 20px;
+}
+
+@media(max-width: 900px){
+  .hero{
+    grid-template-columns: 1fr;
+  }
+}
+
+/* TITLES */
+.title{
+  font-size: 42px;
+  font-weight: 900;
+  margin-bottom: 10px;
+}
+
+.subtitle{
+  opacity: .85;
+  margin-bottom: 18px;
+}
+
+/* CARDS */
+.card{
+  background: rgba(255,255,255,.06);
+  border-radius: 20px;
+  padding: 18px;
+  border: 1px solid rgba(255,255,255,.12);
+}
+
+/* FORM */
+.form-grid{
+  display: grid;
   gap: 14px;
 }
 
 .field label{
+  font-weight: 700;
+  margin-bottom: 6px;
   display: block;
-  font-weight: 800;
-  opacity: .85;
-  margin-bottom: 8px;
-  font-size: 13px;
-  letter-spacing: .2px;
 }
 
-.review-form input,
-.review-form textarea{
+select{
   width: 100%;
+  padding: 12px;
   border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.05);
-  color: rgba(240,245,255,.92);
-  padding: 12px 12px;
-  outline: none;
+  background: rgba(0,0,0,.35);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.2);
 }
 
-.review-form input:focus,
-.review-form textarea:focus{
-  border-color: rgba(96,165,250,.55);
-  box-shadow: 0 0 0 4px rgba(96,165,250,.12);
-}
-
-.actions{
-  display: flex;
-  justify-content: flex-start;
-}
-
-/* ⭐ STAR RATING */
-.stars{
-  display: inline-flex;
-  flex-direction: row-reverse;
-  gap: 6px;
-  align-items: center;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.05);
-}
-
-.stars input{ display:none; }
-
-.stars label{
-  font-size: 24px;
-  cursor: pointer;
-  color: rgba(255,255,255,.25);
-  transition: transform .12s ease, color .12s ease;
-  line-height: 1;
-  user-select: none;
-}
-
-.stars label:hover{
-  transform: translateY(-1px) scale(1.05);
-}
-
-.stars label:hover,
-.stars label:hover ~ label{
-  color: #ffd54a;
-}
-
-.stars input:checked ~ label{
-  color: #ffd54a;
-}
-
-.stars-hint{
-  margin-top: 6px;
-  font-size: 12px;
-  opacity: .7;
-}
-
-.reviews-list{
-  display: grid;
-  gap: 12px;
-}
-
-.review-item{
+/* BUTTON */
+.btn-primary{
+  margin-top: 10px;
   padding: 14px;
   border-radius: 18px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(0,0,0,.18);
+  border: none;
+  cursor: pointer;
+  font-weight: 800;
+  color: #001018;
+  background: linear-gradient(90deg, #7c6cff, #3bdcff);
 }
 
-.review-top{
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: flex-start;
-  flex-wrap: wrap;
-}
-
-.review-name{
-  font-weight: 950;
-  font-size: 16px;
-}
-
-.review-date{
-  opacity: .72;
-  margin-top: 3px;
-  font-size: 12px;
-}
-
-.review-stars{
-  font-size: 18px;
-  letter-spacing: 1px;
-  color: #ffd54a;
-  white-space: nowrap;
-}
-
-.review-msg{
-  margin-top: 10px;
+.btn-primary:hover{
   opacity: .9;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
 }
 
-.empty-text{
-  opacity: .8;
+/* CHART */
+.chart-card{
+  min-height: 360px;
 }
 
-@media (max-width: 768px){
-  .grid-2{ grid-template-columns: 1fr; }
+.card-title{
+  font-weight: 800;
+  margin-bottom: 10px;
 }
 
-
-
-
+/* FOOTER */
+.footer-note{
+  margin-top: 30px;
+  padding: 16px;
+  text-align: center;
+  opacity: .75;
+  font-size: 13px;
+}
