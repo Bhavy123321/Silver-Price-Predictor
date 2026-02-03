@@ -1,77 +1,209 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Silver Predictor</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+{% extends "base.html" %}
+{% block content %}
 
-<header class="nav">
-  <h2>Silver Predictor</h2>
-  <div>
-    <a href="{{ social.github }}" target="_blank">GitHub</a>
-    <a href="{{ social.linkedin }}" target="_blank">LinkedIn</a>
-  </div>
-</header>
-
-<main class="container">
-
-  <form method="POST" class="card">
-    <select name="state" required>
-      {% for s in states %}
-      <option value="{{ s }}">{{ s }}</option>
-      {% endfor %}
-    </select>
-
-    <select name="purity">
-      <option value="999">999 (Fine Silver)</option>
-      <option value="925">925</option>
-      <option value="900">900</option>
-      <option value="800">800</option>
-    </select>
-
-    <select name="horizon">
-      <option value="1d">Next Day</option>
-    </select>
-
-    <button type="submit">Run Prediction</button>
-  </form>
-
-  {% if result %}
-  <div class="result">
-
-    <h3>{{ result.direction }} • {{ result.confidence }}% confidence</h3>
-
-    <!-- CURRENT PRICE -->
-    <div class="current">
-      Current Silver Price: ₹{{ result.current_g }} /g
-    </div>
-
-    <!-- BASE INFO -->
-    <div class="stats">
-      <div>Base (₹/kg): ₹{{ result.base_kg }}</div>
-      <div>Premium (₹/kg): ₹{{ result.premium }}</div>
-      <div>Final (₹/g): ₹{{ result.final_g }}</div>
-    </div>
-
-    <!-- PRICES STRIP -->
-    <div class="prices">
-      <span>1g: ₹{{ result.p1 }}</span>
-      <span>10g: ₹{{ result.p10 }}</span>
-      <span>100g: ₹{{ result.p100 }}</span>
-    </div>
-
-    <p class="note">
-      ⚠️ These prices are AI-based predictions using historical trends and live market data.
-      Use them as a smart reference — not as 100% guaranteed rates.
+<section class="hero">
+  <div class="hero-left">
+    <h1 class="title">Smart Silver Forecast</h1>
+    <p class="subtitle">
+      Choose your <b>State/UT</b>, <b>Purity</b> and <b>Horizon</b>.
+      We predict the direction <span class="chip">UP/DOWN</span> with confidence and show estimated prices for
+      <b>1g / 10g / 100g</b>.
     </p>
 
+    <div class="card form-card">
+      <form method="POST" class="form-grid">
+        <div class="field">
+          <label>State / UT</label>
+          <select name="state" required>
+            {% for s in states %}
+              <option value="{{ s }}" {% if result and result.state == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Horizon</label>
+          <select name="horizon" required>
+            <option value="1h">Next Hour</option>
+            <option value="1d" selected>Next Day</option>
+            <option value="1m">Next Month</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Silver Purity</label>
+          <select name="purity" required>
+            <option value="999">999 (Fine Silver)</option>
+            <option value="925">925 (Sterling)</option>
+            <option value="900">900</option>
+            <option value="800">800</option>
+          </select>
+        </div>
+
+        <div class="field info-box">
+          <div class="info-title">What you’ll get</div>
+          <ul class="info-list">
+            <li>✅ Direction + Confidence</li>
+            <li>✅ Trend chart</li>
+            <li>✅ Estimated prices (1g/10g/100g)</li>
+          </ul>
+        </div>
+
+        <button class="btn-primary" type="submit">Run Prediction</button>
+        <div class="tip">Tip: Day/Month predictions are usually more stable than Hour predictions.</div>
+      </form>
+    </div>
   </div>
+
+  <div class="hero-right">
+    <div class="card chart-card">
+      <div class="card-title">Silver Trend (Last ~48 Hours)</div>
+      <canvas id="priceChart"></canvas>
+      <div class="card-foot">Source: SI=F hourly close values.</div>
+    </div>
+
+    <div class="card connect-card">
+      <div class="card-title">Connect with me</div>
+      <div class="btn-row">
+        <a class="btn-soft" href="{{ social.github }}" target="_blank">🐙 GitHub</a>
+        <a class="btn-soft" href="{{ social.linkedin }}" target="_blank">💼 LinkedIn</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% if result %}
+<section class="result-section">
+  <div class="card result-card">
+    <div class="result-top">
+      <div class="result-main">
+        <div class="result-kicker">PREDICTION RESULT</div>
+        <div class="result-head">
+          <span class="dir">{{ result.direction }}</span>
+          <span class="sep">•</span>
+          <span class="conf">{{ result.confidence }}% confidence</span>
+        </div>
+        <div class="result-sub">
+          {{ result.horizon }} • {{ result.state }} • Purity {{ result.purity }}
+        </div>
+      </div>
+
+      <div class="badge {{ 'up' if result.direction == 'UP' else 'down' }}">
+        <span>{{ result.direction }}</span>
+      </div>
+    </div>
+
+    <!-- ✅ CURRENT PRICE LINE (TOP) -->
+    <div class="current-line">
+      <div class="current-title">Current Silver Price (Market Reference)</div>
+      <div class="current-value">
+        ₹{{ result.current_per_g }} <span>/g</span>
+        <span class="dot">•</span>
+        ₹{{ result.current_per_kg }} <span>/kg</span>
+      </div>
+    </div>
+
+    <!-- Stats cards -->
+    <div class="grid3">
+      <div class="stat">
+        <div class="stat-label">BASE (INR/KG)</div>
+        <div class="stat-value">₹{{ result.base_inr_kg }}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">PREMIUM (₹/KG)</div>
+        <div class="stat-value">₹{{ result.premium_per_kg }}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">FINAL (₹/G)</div>
+        <div class="stat-value">₹{{ result.prices.per_g }}</div>
+      </div>
+    </div>
+
+    <!-- ✅ REMOVE 10g CARD: Prices in ONE bottom strip line -->
+    <div class="prices-strip">
+      <div><span class="tag">1g</span> ₹{{ result.prices.p1 }}</div>
+      <div><span class="tag">10g</span> ₹{{ result.prices.p10 }}</div>
+      <div><span class="tag">100g</span> ₹{{ result.prices.p100 }}</div>
+    </div>
+
+    <div class="note">
+      ⚠️ These prices are AI-based predictions using historical trends and live market data.
+      Use them as a smart reference — <b>not as 100% guaranteed rates</b>.
+    </div>
+  </div>
+
+  <!-- Right side: donut smaller -->
+  <div class="card donut-card">
+    <div class="card-title">Model Confidence (UP vs DOWN)</div>
+    <div class="donut-wrap">
+      <canvas id="confChart"></canvas>
+    </div>
+    <div class="card-foot muted">
+      UP probability: {{ result.proba_up }}%
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<script>
+  // ---------- Trend Chart ----------
+  const labels = {{ (labels if labels else []) | tojson }};
+  const values = {{ (values if values else []) | tojson }};
+
+  const priceCanvas = document.getElementById("priceChart");
+  if (priceCanvas && labels.length && values.length) {
+    new Chart(priceCanvas, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [{
+          label: "Silver Close (USD/oz)",
+          data: values,
+          tension: 0.35,
+          borderWidth: 2,
+          pointRadius: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { maxTicksLimit: 8 } },
+          y: { ticks: { maxTicksLimit: 6 } }
+        }
+      }
+    });
+  }
+
+  // ---------- Confidence Donut ----------
+  {% if result %}
+    const upProb = {{ (result["proba_up"] if result and "proba_up" in result else 50) | tojson }};
+    const downProb = 100 - upProb;
+
+    const confCanvas = document.getElementById("confChart");
+    if (confCanvas) {
+      new Chart(confCanvas, {
+        type: "doughnut",
+        data: {
+          labels: ["UP", "DOWN"],
+          datasets: [{
+            data: [upProb, downProb],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: "70%",
+          plugins: {
+            legend: { display: false },
+            tooltip: { enabled: true }
+          }
+        }
+      });
+    }
   {% endif %}
+</script>
 
-</main>
-
-</body>
-</html>
+{% endblock %}
