@@ -13,8 +13,8 @@ app.secret_key = "silver-predictor-secret"
 # YOUR SOCIAL LINKS (edit)
 # -------------------------
 SOCIAL = {
-    "github": "https://github.com/YOUR_GITHUB_USERNAME",
-    "linkedin": "https://www.linkedin.com/in/YOUR_LINKEDIN_USERNAME/"
+    "github": "https://github.com/Bhavy123321",
+    "linkedin": "https://www.linkedin.com/in/bhavy-soni-6123a32b0/"
 }
 
 # -------------------------
@@ -403,3 +403,4 @@ def reviews():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
