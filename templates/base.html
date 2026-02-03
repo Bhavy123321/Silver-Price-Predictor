@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Silver Predictor</title>
 
-  <!-- ✅ Must be like this in Flask -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=999">
+  <!-- ✅ Flask-safe CSS (cache-bust) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=20260203">
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -14,20 +14,20 @@
 
 <body>
 
-  <!-- ✅ Styled Navbar (this must appear) -->
+  <!-- ✅ NAVBAR (will be styled by CSS below) -->
   <header class="topbar">
     <div class="brand">
-      <div class="logo"></div>
-      <div>
+      <div class="logo" aria-hidden="true"></div>
+      <div class="brand-text">
         <div class="brand-title">Silver Predictor</div>
         <div class="brand-sub">AI Direction Forecast • Purity • State Premium</div>
       </div>
     </div>
 
     <nav class="navlinks">
-      <a href="{{ url_for('index') }}">Dashboard</a>
-      <a href="{{ url_for('about') }}">About</a>
-      <a href="{{ url_for('reviews') }}">Reviews</a>
+      <a class="navitem" href="{{ url_for('index') }}">Dashboard</a>
+      <a class="navitem" href="{{ url_for('about') }}">About</a>
+      <a class="navitem" href="{{ url_for('reviews') }}">Reviews</a>
 
       <a class="pill" href="{{ social.github }}" target="_blank" rel="noopener">GitHub</a>
       <a class="pill" href="{{ social.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>
