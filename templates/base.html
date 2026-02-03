@@ -1,46 +1,62 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Silver Predictor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-  <!-- IMPORTANT: Viewport -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- ✅ MAIN CSS -->
+  <!-- Main CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
-  <!-- ✅ Chart.js (REQUIRED) -->
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+  <!-- Main JS -->
+  <script defer src="{{ url_for('static', filename='app.js') }}"></script>
 </head>
-<body>
 
-  <!-- HEADER -->
-  <header class="header">
-    <div class="header-left">
-      <div class="logo">Silver Predictor</div>
-      <div class="tagline">AI Direction Forecast • Purity • State Premium</div>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div>
+        <div class="brand-title">Silver Predictor</div>
+        <div class="brand-sub">AI Direction Forecast • Purity • State Premium</div>
+      </div>
     </div>
 
     <nav class="nav">
-      <a href="{{ url_for('index') }}">Dashboard</a>
-      <a href="{{ url_for('about') }}">About</a>
-      <a href="{{ url_for('reviews') }}">Reviews</a>
-      <a href="{{ social.github }}" target="_blank">GitHub</a>
-      <a href="{{ social.linkedin }}" target="_blank">LinkedIn</a>
+      <a class="nav-link" href="{{ url_for('index') }}">Dashboard</a>
+      <a class="nav-link" href="{{ url_for('about') }}">About</a>
+      <a class="nav-link" href="{{ url_for('reviews') }}">Reviews</a>
+      <a class="nav-pill" href="{{ social.github }}" target="_blank" rel="noopener">GitHub</a>
+      <a class="nav-pill" href="{{ social.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>
+
+      <button class="mode-btn" type="button" id="themeToggle" aria-label="Toggle theme">
+        <span class="mode-icon" id="themeIcon">🌙</span>
+        <span class="mode-text" id="themeText">Dark</span>
+      </button>
     </nav>
   </header>
 
-  <!-- PAGE CONTENT -->
-  <main class="container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="toast-wrap">
+        {% for category, message in messages %}
+          <div class="toast {{ 'toast-error' if category=='error' else 'toast-success' }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <main class="page">
     {% block content %}{% endblock %}
   </main>
 
-  <!-- FOOTER NOTE -->
-  <footer class="footer-note">
-    ⚠️ All prices are AI-based estimates using historical trends and live market data. Not guaranteed.
+  <footer class="footnote">
+    ⚠️ All prices are AI-based estimates using historical trends + live market data. Not guaranteed.
   </footer>
-
 </body>
 </html>
