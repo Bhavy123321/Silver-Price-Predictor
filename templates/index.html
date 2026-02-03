@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="hero">
+    <!-- LEFT SIDE -->
+    <div class="hero-left fade-in">
+        <h1>Smart Silver Forecast</h1>
+        <p class="muted">
+            Choose your <b>State/UT</b>, <b>Purity</b> and <b>Horizon</b>. We predict the direction
+            <span class="kbd">UP/DOWN</span> with confidence and show estimated prices for
+            <span class="kbd">1g / 10g / 100g</span>.
+        </p>
+
+        <!-- FORM -->
+        <form method="POST" class="card form-card">
+            <div class="grid2">
+                <div>
+                    <label>State / UT</label>
+                    <div class="input">
+                        <span class="icon">📍</span>
+                        <select name="state" required>
+                            {% for s in states %}
+                            <option value="{{ s }}">{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label>Horizon</label>
+                    <div class="input">
+                        <span class="icon">⏳</span>
+                        <select name="horizon" required>
+                            <option value="1h">Next Hour</option>
+                            <option value="1d">Next Day (24h)</option>
+                            <option value="1m">Next Month (approx)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid2">
+                <div>
+                    <label>Silver Purity</label>
+                    <div class="input">
+                        <span class="icon">✨</span>
+                        <select name="purity" required>
+                            <option value="999">999 (Fine Silver)</option>
+                            <option value="925">925 (Sterling)</option>
+                            <option value="900">900</option>
+                            <option value="800">800</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card soft">
+                    <div style="font-weight:950; margin-bottom:6px;">What you’ll get</div>
+                    <div class="muted" style="line-height:1.5;">
+                        ✅ Direction + Confidence<br>
+                        ✅ Trend chart<br>
+                        ✅ Estimated prices for <b>1g / 10g / 100g</b>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-primary" type="submit">Run Prediction</button>
+            <div class="tiny muted">Tip: Day/Month predictions are usually more stable than Hour predictions.</div>
+        </form>
+
+        <!-- RESULT -->
+        {% if result %}
+        <div class="card fade-in" style="margin-top:14px;">
+            <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
+                <div>
+                    <div class="muted"
+                        style="font-weight:900; text-transform:uppercase; letter-spacing:.35px; font-size:12px;">
+                        Prediction Result
+                    </div>
+                    <div style="font-size:22px; font-weight:950; margin-top:6px;">
+                        {{ result["direction"] }} • {{ result["confidence"] }}% confidence
+                    </div>
+                    <div class="muted" style="margin-top:6px;">
+                        {{ result["horizon"] }} • {{ result["state"] }} • Purity {{ result["purity"] }}
+                    </div>
+                </div>
+
+                <div class="badge {{ 'up' if result['direction']=='UP' else 'down' }}">
+                    {{ "📈 UP" if result['direction']=='UP' else "📉 DOWN" }}
+                </div>
+            </div>
+
+            <div class="grid3" style="margin-top:12px;">
+                <div class="stat">
+                    <div class="stat-label">Base (INR/kg)</div>
+                    <div class="stat-value">₹{{ result["base_inr_kg"] }}</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Premium (₹/kg)</div>
+                    <div class="stat-value">₹{{ result["premium_per_kg"] }}</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Final (₹/g)</div>
+                    <div class="stat-value">₹{{ result["prices"]["per_g"] }}</div>
+                </div>
+            </div>
+
+            <div class="grid3 price-grid">
+                <div class="price-card">
+                    <div class="price-label">1 gram</div>
+                    <div class="price-value">₹{{ result["prices"]["p1"] }}</div>
+                </div>
+                <div class="price-card">
+                    <div class="price-label">10 grams</div>
+                    <div class="price-value">₹{{ result["prices"]["p10"] }}</div>
+                </div>
+                <div class="price-card">
+                    <div class="price-label">100 grams</div>
+                    <div class="price-value">₹{{ result["prices"]["p100"] }}</div>
+                </div>
+            </div>
+
+            <div class="disclaimer">
+                ⚠️ These prices are <b>AI-based predictions</b> using historical trends and live market data.
+                Use them as a smart reference — <b>not as 100% guaranteed rates</b>.
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- RIGHT SIDE -->
+    <div class="hero-right fade-in">
+        <!-- Trend Chart (smaller) -->
+        <div class="card chart-card compact-chart">
+            <div class="chart-title">Silver Trend (Last ~48 Hours)</div>
+            <canvas id="priceChart"></canvas>
+            <div class="tiny muted" style="margin-top:10px;">Source: SI=F hourly close values.</div>
+        </div>
+
+        <!-- Confidence Pie (smaller) -->
+        <div class="card chart-card compact-chart" style="margin-top:14px;">
+            <div class="chart-title">Model Confidence (UP vs DOWN)</div>
+            {% if result %}
+            <canvas id="confChart"></canvas>
+            {% else %}
+            <div class="muted tiny">Run prediction to see confidence chart.</div>
+            {% endif %}
+        </div>
+
+        <!-- Connect with me (ALWAYS LAST / BOTTOM) -->
+        <div class="card" style="margin-top:14px;">
+            <div style="font-weight:950; margin-bottom:8px;">Connect with me</div>
+            <div class="mini-links">
+                <a class="btn-soft" href="{{ social.github }}" target="_blank">🐙 GitHub</a>
+                <a class="btn-soft" href="{{ social.linkedin }}" target="_blank">💼 LinkedIn</a>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- JSON data to avoid editor issues -->
+<script id="priceLabels" type="application/json">{{ labels|default([])|tojson }}</script>
+<script id="priceValues" type="application/json">{{ values|default([])|tojson }}</script>
+{% if result %}
+<script id="upProb" type="application/json">{{ result.get('proba_up', 50)|tojson }}</script>
+{% endif %}
+
+<script>
+    const labels = JSON.parse(document.getElementById("priceLabels").textContent || "[]");
+    const values = JSON.parse(document.getElementById("priceValues").textContent || "[]");
+
+    // Smaller chart heights (no huge charts)
+    const priceCanvas = document.getElementById("priceChart");
+    if (priceCanvas && labels.length && values.length) {
+        new Chart(priceCanvas, {
+            type: "line",
+            data: {
+                labels,
+                datasets: [{
+                    label: "Silver Close (USD/oz)",
+                    data: values,
+                    tension: 0.35,
+                    borderWidth: 2,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { ticks: { maxTicksLimit: 8 } } }
+            }
+        });
+    }
+
+    const confCanvas = document.getElementById("confChart");
+    const upProbEl = document.getElementById("upProb");
+
+    if (confCanvas && upProbEl) {
+        const upProb = JSON.parse(upProbEl.textContent || "50");
+        const downProb = 100 - upProb;
+
+        new Chart(confCanvas, {
+            type: "doughnut",
+            data: {
+                labels: ["UP", "DOWN"],
+                datasets: [{ data: [upProb, downProb], borderWidth: 0 }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: "72%",
+                plugins: { legend: { position: "bottom" } }
+            }
+        });
+    }
+</script>
+
+{% endblock %}

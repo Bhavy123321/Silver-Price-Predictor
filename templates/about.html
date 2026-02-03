@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page">
+    <div class="card page-card">
+        <h2>About Us</h2>
+        <p class="muted">
+            <b>Silver Predictor</b> is an educational machine learning project that predicts whether silver price
+            direction
+            may go <b>UP</b> or <b>DOWN</b> for different horizons (Next Hour, Next Day, Next Month).
+            It also estimates prices by purity and common weights (1g, 10g, 100g), with a State/UT premium adjustment.
+        </p>
+
+        <div class="grid2">
+            <div class="info">
+                <div class="info-title">What this project provides</div>
+                <ul>
+                    <li>ML-based direction prediction with confidence score.</li>
+                    <li>Purity selection: 999 / 925 / 900 / 800.</li>
+                    <li>Estimated prices for 1g / 10g / 100g.</li>
+                    <li>State/UT premium logic for local variation.</li>
+                    <li>Charts for quick visual understanding.</li>
+                </ul>
+            </div>
+
+            <div class="info">
+                <div class="info-title">Connect with me</div>
+                <p class="muted">Feedback and collaboration welcome:</p>
+                <div class="mini-links">
+                    <a class="btn-soft" href="{{ social.github }}" target="_blank">GitHub</a>
+                    <a class="btn-soft" href="{{ social.linkedin }}" target="_blank">LinkedIn</a>
+                </div>
+            </div>
+        </div>
+
+        <p class="disclaimer" style="margin-top:14px;">
+            ⚠️ This app shows AI-based predictions and is meant for learning and planning — not guaranteed financial
+            advice.
+        </p>
+    </div>
+</div>
+
+{% endblock %}
