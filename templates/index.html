@@ -66,7 +66,7 @@
 
     <!-- ✅ RESULT (NEW UI STYLE) -->
     {% if result %}
-    <div class="card" style="margin-top:14px;">
+    <div class="card" id="resultCard" style="margin-top:14px;">
 
       <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
         <div>
@@ -96,7 +96,7 @@
         </div>
       </div>
 
-      <!-- ✅ PREDICTED PRICE ROW (requested) -->
+      <!-- ✅ PREDICTED PRICE ROW -->
       <div style="margin-top:12px; padding:14px; border-radius:18px;
                   border:1px solid rgba(46,229,157,.35); background:rgba(46,229,157,.08);">
         <div style="opacity:.80; font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:.35px;">
@@ -112,38 +112,20 @@
         </div>
       </div>
 
-      <!-- ✅ AMOUNTS LINE (clean bottom row) -->
+      <!-- ✅ AMOUNTS LINE -->
       <div style="margin-top:12px; padding:14px; border-radius:18px;
                   border:1px dashed rgba(255,255,255,.18); background:rgba(0,0,0,.18);">
-        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
-          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-            <span class="pill" style="padding:8px 12px;">1g</span>
-            <strong style="font-size:18px;">₹{{ result.prices.p1 }}</strong>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <span class="pill" style="padding:8px 12px;">1g</span>
+          <strong style="font-size:18px;">₹{{ result.prices.p1 }}</strong>
 
-            <span class="pill" style="padding:8px 12px;">10g</span>
-            <strong style="font-size:18px;">₹{{ result.prices.p10 }}</strong>
+          <span class="pill" style="padding:8px 12px;">10g</span>
+          <strong style="font-size:18px;">₹{{ result.prices.p10 }}</strong>
 
-            <span class="pill" style="padding:8px 12px;">100g</span>
-            <strong style="font-size:18px;">₹{{ result.prices.p100 }}</strong>
-          </div>
+          <span class="pill" style="padding:8px 12px;">100g</span>
+          <strong style="font-size:18px;">₹{{ result.prices.p100 }}</strong>
         </div>
       </div>
-
-      <!-- (Optional) Hidden breakdown (NOT on main view) -->
-      <details style="margin-top:12px; opacity:.85;">
-        <summary style="cursor:pointer; font-weight:900;">Show calculation breakdown</summary>
-        <div style="margin-top:10px; display:grid; gap:10px;">
-          <div style="padding:12px; border-radius:14px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03);">
-            <b>Base (INR/kg):</b> ₹{{ result.base_inr_kg }} (converted from SI=F + USDINR)
-          </div>
-          <div style="padding:12px; border-radius:14px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03);">
-            <b>Premium (₹/kg):</b> ₹{{ result.premium_per_kg }} (state/wholesale demo premium)
-          </div>
-          <div style="padding:12px; border-radius:14px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03);">
-            <b>Predicted rate (₹/g):</b> ₹{{ result.prices.per_g }} = (Base + Premium)/1000 after purity factor
-          </div>
-        </div>
-      </details>
 
       <!-- Disclaimer -->
       <div style="margin-top:14px; padding:14px; border-radius:18px;
@@ -159,24 +141,47 @@
 
   <!-- RIGHT -->
   <div class="hero-right">
-    <div class="card chart-card">
+
+    <!-- Trend chart -->
+    <div class="card chart-card" id="trendCard">
       <div class="card-title">Silver Trend (Last ~48 Hours)</div>
       <canvas id="priceChart"></canvas>
       <div class="card-foot">Source: SI=F hourly close values.</div>
     </div>
 
-    <div class="card connect-card">
+    <!-- ✅ Confidence chart (same height as result container) -->
+    {% if result %}
+    <div class="card" id="confCard" style="margin-top:14px; display:flex; flex-direction:column;">
+      <div class="card-title" style="margin-bottom:10px;">Model Confidence (UP vs DOWN)</div>
+
+      <div style="flex:1; min-height:260px; position:relative;">
+        <canvas id="confChart" style="width:100%; height:100%;"></canvas>
+      </div>
+
+      <div style="opacity:.75; margin-top:10px; font-size:13px;">
+        UP: <b>{{ result.proba_up }}%</b> &nbsp; • &nbsp;
+        DOWN: <b>{{ "%.2f"|format(100 - result.proba_up) }}%</b>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Connect card -->
+    <div class="card connect-card" id="connectCard">
       <div class="card-title">Connect with me</div>
       <div class="btn-row">
         <a class="btn-soft" href="{{ social.github }}" target="_blank" rel="noopener">🐙 GitHub</a>
         <a class="btn-soft" href="{{ social.linkedin }}" target="_blank" rel="noopener">💼 LinkedIn</a>
       </div>
     </div>
+
   </div>
 
 </section>
 
 <script>
+  // -----------------------------
+  // Trend Chart
+  // -----------------------------
   const labels = {{ (labels if labels else []) | tojson }};
   const values = {{ (values if values else []) | tojson }};
 
@@ -204,6 +209,56 @@
         }
       }
     });
+  }
+
+  // -----------------------------
+  // Confidence Chart + Match Height
+  // -----------------------------
+  const resultExists = {{ (true if result else false) | tojson }};
+  if (resultExists) {
+    const upProb = {{ (result.proba_up if result else 50) | tojson }};
+    const downProb = 100 - upProb;
+
+    const confCanvas = document.getElementById("confChart");
+    if (confCanvas) {
+      new Chart(confCanvas, {
+        type: "doughnut",
+        data: {
+          labels: ["UP", "DOWN"],
+          datasets: [{
+            data: [upProb, downProb],
+            borderWidth: 0,
+            hoverOffset: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true, position: "bottom" },
+            tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.raw.toFixed(2)}%` } }
+          },
+          cutout: "70%"
+        }
+      });
+    }
+
+    // Match conf card height to result card height (same size)
+    const resultCard = document.getElementById("resultCard");
+    const confCard = document.getElementById("confCard");
+
+    function matchHeight(){
+      if (!resultCard || !confCard) return;
+      // Set conf card height exactly same as result card
+      confCard.style.height = resultCard.offsetHeight + "px";
+    }
+
+    window.addEventListener("load", matchHeight);
+    window.addEventListener("resize", () => {
+      confCard.style.height = "auto"; // reset
+      matchHeight();
+    });
+    matchHeight();
   }
 </script>
 
