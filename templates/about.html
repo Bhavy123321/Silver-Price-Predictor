@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="card page-card">
+<div class="card">
   <div class="card-title">About Silver Predictor</div>
-  <p class="muted">
-    Silver Predictor is an AI-based forecasting dashboard that estimates direction (UP/DOWN) for silver price
-    over different horizons, and shows estimated prices using state/UT premium and purity.
+  <p class="lead" style="margin-top:10px;">
+    Silver Predictor is a demo ML project that estimates silver direction (UP/DOWN) for different horizons
+    using historical price patterns and USD/INR reference data.
   </p>
 
-  <div class="muted" style="margin-top:10px;">
-    ⚠️ Disclaimer: Predictions are based on historical patterns and available market data. They are for educational/reference use only.
+  <div class="notice" style="margin-top:14px;">
+    ⚠️ Disclaimer: These are AI-based estimates and should not be treated as guaranteed market rates.
   </div>
 
-  <div class="btn-row" style="margin-top:16px;">
+  <div class="btn-row" style="margin-top:14px;">
     <a class="btn-soft" href="{{ social.github }}" target="_blank">🐙 GitHub</a>
     <a class="btn-soft" href="{{ social.linkedin }}" target="_blank">💼 LinkedIn</a>
   </div>
