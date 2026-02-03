@@ -124,9 +124,33 @@ def get_reviews(limit=60):
 # Helpers
 # -------------------------
 def usd_oz_to_inr_kg(price_usd_per_oz, usd_inr):
-    # 1 troy ounce = 31.1034768 grams
+    """
+    Convert USD/oz silver and USD/INR into INR per kg.
+    1 troy ounce = 31.1034768 grams
+    """
     oz_per_kg = 1000.0 / 31.1034768
     return float(price_usd_per_oz) * float(usd_inr) * oz_per_kg
+
+def ensure_feature_frame(model, X):
+    """
+    Ensures X is a DataFrame with the exact feature names/order the model expects.
+    This prevents 'feature name mismatch' errors and Railway failures.
+    """
+    if hasattr(model, "feature_names_in_"):
+        cols = list(model.feature_names_in_)
+
+        # If X is DataFrame: reorder, fill missing cols with 0
+        if isinstance(X, pd.DataFrame):
+            for c in cols:
+                if c not in X.columns:
+                    X[c] = 0
+            X = X[cols]
+            return X
+
+        # If X is numpy-like: convert to DataFrame with correct columns
+        return pd.DataFrame(X, columns=cols)
+
+    return X
 
 def predict_with_model(model, X_row):
     """
@@ -135,21 +159,44 @@ def predict_with_model(model, X_row):
     confidence: model confidence for predicted class
     proba_up: probability of UP
     """
+    X_row = ensure_feature_frame(model, X_row)
+
     pred = int(model.predict(X_row)[0])
     proba_up = float(model.predict_proba(X_row)[0][1])
+
     direction = "UP" if pred == 1 else "DOWN"
     confidence = proba_up if pred == 1 else (1 - proba_up)
+
     return direction, round(confidence * 100, 2), round(proba_up * 100, 2)
 
 def safe_close_series(df):
-    # yfinance can return MultiIndex columns sometimes
+    """
+    yfinance can return MultiIndex columns sometimes.
+    We extract a clean Close series.
+    """
     if df is None or df.empty:
         return None
-    if isinstance(df.columns, pd.MultiIndex):
-        return df["Close"].iloc[:, 0].dropna()
-    return df["Close"].dropna()
+
+    try:
+        if isinstance(df.columns, pd.MultiIndex):
+            # Close might be a DataFrame; take first column
+            close_df = df["Close"]
+            if isinstance(close_df, pd.DataFrame):
+                return close_df.iloc[:, 0].dropna()
+            return close_df.dropna()
+
+        if "Close" not in df.columns:
+            return None
+
+        return df["Close"].dropna()
+
+    except Exception:
+        return None
 
 def fetch_hourly_series(days="5d"):
+    """
+    Used for the line chart (last 48 hours).
+    """
     try:
         silver = yf.download("SI=F", period=days, interval="1h", auto_adjust=True, progress=False)
         series = safe_close_series(silver)
@@ -159,100 +206,115 @@ def fetch_hourly_series(days="5d"):
 
 def fetch_hourly_features():
     """
-    Used only for Next Hour.
+    Used only for Next Hour prediction.
     """
-    silver = yf.download("SI=F", period="5d", interval="1h", auto_adjust=True, progress=False)
-    usdinr = yf.download("USDINR=X", period="5d", interval="1h", auto_adjust=True, progress=False)
+    try:
+        silver = yf.download("SI=F", period="5d", interval="1h", auto_adjust=True, progress=False)
+        usdinr = yf.download("USDINR=X", period="5d", interval="1h", auto_adjust=True, progress=False)
 
-    silver_close = safe_close_series(silver)
-    usd_inr = safe_close_series(usdinr)
+        silver_close = safe_close_series(silver)
+        usd_inr = safe_close_series(usdinr)
 
-    if silver_close is None or usd_inr is None:
+        if silver_close is None or usd_inr is None:
+            return None, None
+
+        df = pd.concat([silver_close.rename("silver_close"), usd_inr.rename("usd_inr")], axis=1).dropna()
+
+        df["lag_1"] = df["silver_close"].shift(1)
+        df["lag_2"] = df["silver_close"].shift(2)
+        df["lag_3"] = df["silver_close"].shift(3)
+        df["hour"] = df.index.hour
+
+        df = df.dropna()
+        if df.empty:
+            return None, None
+
+        X_last = df[["silver_close", "usd_inr", "lag_1", "lag_2", "lag_3", "hour"]].iloc[[-1]]
+        latest = df.iloc[-1]
+        return X_last, latest
+
+    except Exception:
         return None, None
-
-    df = pd.concat([silver_close.rename("silver_close"), usd_inr.rename("usd_inr")], axis=1).dropna()
-    df["lag_1"] = df["silver_close"].shift(1)
-    df["lag_2"] = df["silver_close"].shift(2)
-    df["lag_3"] = df["silver_close"].shift(3)
-    df["hour"] = df.index.hour
-    df = df.dropna()
-
-    if df.empty:
-        return None, None
-
-    X_last = df[["silver_close", "usd_inr", "lag_1", "lag_2", "lag_3", "hour"]].iloc[[-1]]
-    latest = df.iloc[-1]
-    return X_last, latest
 
 def fetch_daily_features_for_day():
     """
-    STABLE Next-Day prediction using daily data.
-    Fixes many errors from hourly data.
+    Stable Next-Day prediction using DAILY data (not hourly).
     """
-    silver = yf.download("SI=F", period="120d", interval="1d", auto_adjust=True, progress=False)
-    usdinr = yf.download("USDINR=X", period="120d", interval="1d", auto_adjust=True, progress=False)
+    try:
+        silver = yf.download("SI=F", period="180d", interval="1d", auto_adjust=True, progress=False)
+        usdinr = yf.download("USDINR=X", period="180d", interval="1d", auto_adjust=True, progress=False)
 
-    silver_close = safe_close_series(silver)
-    usd_inr = safe_close_series(usdinr)
+        silver_close = safe_close_series(silver)
+        usd_inr = safe_close_series(usdinr)
 
-    if silver_close is None or usd_inr is None:
+        if silver_close is None or usd_inr is None:
+            return None, None
+
+        df = pd.concat([silver_close.rename("silver_close"), usd_inr.rename("usd_inr")], axis=1).dropna()
+
+        # Daily lags + returns
+        df["lag_1"] = df["silver_close"].shift(1)
+        df["lag_2"] = df["silver_close"].shift(2)
+        df["lag_3"] = df["silver_close"].shift(3)
+
+        df["ret_1"] = df["silver_close"].pct_change(1)
+        df["ret_5"] = df["silver_close"].pct_change(5)
+
+        df["dayofweek"] = df.index.dayofweek
+
+        df = df.dropna()
+        if df.empty:
+            return None, None
+
+        X_last = df[["silver_close", "usd_inr", "lag_1", "lag_2", "lag_3", "ret_1", "ret_5", "dayofweek"]].iloc[[-1]]
+        latest = df.iloc[-1]
+        return X_last, latest
+
+    except Exception:
         return None, None
-
-    df = pd.concat([silver_close.rename("silver_close"), usd_inr.rename("usd_inr")], axis=1).dropna()
-
-    # Daily lags + returns (common & stable)
-    df["lag_1"] = df["silver_close"].shift(1)
-    df["lag_2"] = df["silver_close"].shift(2)
-    df["lag_3"] = df["silver_close"].shift(3)
-
-    df["ret_1"] = df["silver_close"].pct_change(1)
-    df["ret_5"] = df["silver_close"].pct_change(5)
-
-    df["dayofweek"] = df.index.dayofweek
-
-    df = df.dropna()
-    if df.empty:
-        return None, None
-
-    X_last = df[["silver_close", "usd_inr", "lag_1", "lag_2", "lag_3", "ret_1", "ret_5", "dayofweek"]].iloc[[-1]]
-    latest = df.iloc[-1]
-    return X_last, latest
 
 def fetch_daily_features_for_month():
-    silver = yf.download("SI=F", period="2y", interval="1d", auto_adjust=True, progress=False)
-    usdinr = yf.download("USDINR=X", period="2y", interval="1d", auto_adjust=True, progress=False)
+    """
+    Next Month prediction using daily data.
+    """
+    try:
+        silver = yf.download("SI=F", period="2y", interval="1d", auto_adjust=True, progress=False)
+        usdinr = yf.download("USDINR=X", period="2y", interval="1d", auto_adjust=True, progress=False)
 
-    silver_close = safe_close_series(silver)
-    usd_inr = safe_close_series(usdinr)
+        silver_close = safe_close_series(silver)
+        usd_inr = safe_close_series(usdinr)
 
-    if silver_close is None or usd_inr is None:
+        if silver_close is None or usd_inr is None:
+            return None, None
+
+        df = pd.concat([silver_close.rename("silver_close"), usd_inr.rename("usd_inr")], axis=1).dropna()
+
+        df["lag_1"]  = df["silver_close"].shift(1)
+        df["lag_5"]  = df["silver_close"].shift(5)
+        df["lag_10"] = df["silver_close"].shift(10)
+        df["lag_20"] = df["silver_close"].shift(20)
+
+        df["ret_1"]  = df["silver_close"].pct_change(1)
+        df["ret_5"]  = df["silver_close"].pct_change(5)
+        df["ret_20"] = df["silver_close"].pct_change(20)
+
+        df["dayofweek"] = df.index.dayofweek
+        df["month"] = df.index.month
+
+        df = df.dropna()
+        if df.empty:
+            return None, None
+
+        X_last = df[
+            ["silver_close", "usd_inr", "lag_1", "lag_5", "lag_10", "lag_20",
+             "ret_1", "ret_5", "ret_20", "dayofweek", "month"]
+        ].iloc[[-1]]
+
+        latest = df.iloc[-1]
+        return X_last, latest
+
+    except Exception:
         return None, None
-
-    df = pd.concat([silver_close.rename("silver_close"), usd_inr.rename("usd_inr")], axis=1).dropna()
-
-    df["lag_1"]  = df["silver_close"].shift(1)
-    df["lag_5"]  = df["silver_close"].shift(5)
-    df["lag_10"] = df["silver_close"].shift(10)
-    df["lag_20"] = df["silver_close"].shift(20)
-
-    df["ret_1"]  = df["silver_close"].pct_change(1)
-    df["ret_5"]  = df["silver_close"].pct_change(5)
-    df["ret_20"] = df["silver_close"].pct_change(20)
-
-    df["dayofweek"] = df.index.dayofweek
-    df["month"] = df.index.month
-
-    df = df.dropna()
-    if df.empty:
-        return None, None
-
-    X_last = df[
-        ["silver_close", "usd_inr", "lag_1", "lag_5", "lag_10", "lag_20",
-         "ret_1", "ret_5", "ret_20", "dayofweek", "month"]
-    ].iloc[[-1]]
-
-    latest = df.iloc[-1]
-    return X_last, latest
 
 def build_price_cards(base_inr_kg, premium_per_kg, purity_factor):
     """
@@ -312,7 +374,7 @@ def index():
                 base_inr_kg = usd_oz_to_inr_kg(latest["silver_close"], latest["usd_inr"])
 
             # -----------------------------
-            # NEXT DAY (FIXED -> DAILY DATA)
+            # NEXT DAY (DAILY DATA)
             # -----------------------------
             elif horizon == "1d":
                 X_last, latest = fetch_daily_features_for_day()
@@ -320,11 +382,8 @@ def index():
                     flash("Could not fetch daily market data right now. Please try again.", "error")
                     return redirect(url_for("index"))
 
-                # Handle feature-name mismatch safely
-                try:
-                    direction, confidence, proba_up = predict_with_model(model_1d, X_last)
-                except Exception:
-                    direction, confidence, proba_up = predict_with_model(model_1d, X_last.values)
+                # No .values fallback anymore (keeps feature names)
+                direction, confidence, proba_up = predict_with_model(model_1d, X_last)
 
                 horizon_title = "Next Day (1d)"
                 base_inr_kg = usd_oz_to_inr_kg(latest["silver_close"], latest["usd_inr"])
@@ -338,10 +397,7 @@ def index():
                     flash("Could not fetch daily market data right now. Please try again.", "error")
                     return redirect(url_for("index"))
 
-                try:
-                    direction, confidence, proba_up = predict_with_model(model_1m, X_last)
-                except Exception:
-                    direction, confidence, proba_up = predict_with_model(model_1m, X_last.values)
+                direction, confidence, proba_up = predict_with_model(model_1m, X_last)
 
                 horizon_title = "Next Month (approx)"
                 base_inr_kg = usd_oz_to_inr_kg(latest["silver_close"], latest["usd_inr"])
@@ -361,7 +417,9 @@ def index():
                 "prices": price_cards
             }
 
-        except Exception:
+        except Exception as e:
+            # IMPORTANT: print real error in Railway logs
+            print("PREDICTION ERROR:", repr(e))
             flash("Something went wrong while calculating prediction. Please try again.", "error")
             return redirect(url_for("index"))
 
