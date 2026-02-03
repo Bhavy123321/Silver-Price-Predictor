@@ -1,86 +1,63 @@
 {% extends "base.html" %}
 {% block content %}
 
-<section class="reviews-page">
+<div class="reviews">
+  <div class="card">
+    <div class="card-title">Leave a Review</div>
 
-  <div class="card review-form-card">
-    <h2 class="section-title">Leave a Review</h2>
-
-    <form method="POST" class="review-form">
-
-      <div class="grid-2">
+    <form method="POST" class="form" style="margin-top:14px;">
+      <div class="form-row">
         <div class="field">
-          <label>Your name</label>
-          <input type="text" name="name" placeholder="Enter your name" required>
+          <label class="label">Your name</label>
+          <input class="input" name="name" placeholder="Enter your name" required>
         </div>
 
         <div class="field">
-          <label>Rating</label>
-
-          <!-- ⭐ Stars (radio inputs hidden by CSS) -->
+          <label class="label">Rating</label>
           <div class="stars">
-            <input type="radio" id="rate-5" name="rating" value="5" checked>
-            <label for="rate-5" title="5 stars">★</label>
-
-            <input type="radio" id="rate-4" name="rating" value="4">
-            <label for="rate-4" title="4 stars">★</label>
-
-            <input type="radio" id="rate-3" name="rating" value="3">
-            <label for="rate-3" title="3 stars">★</label>
-
-            <input type="radio" id="rate-2" name="rating" value="2">
-            <label for="rate-2" title="2 stars">★</label>
-
-            <input type="radio" id="rate-1" name="rating" value="1">
-            <label for="rate-1" title="1 star">★</label>
+            {% for r in range(5,0,-1) %}
+              <input type="radio" id="star{{r}}" name="rating" value="{{r}}" {% if r==5 %}checked{% endif %}>
+              <label for="star{{r}}">★</label>
+            {% endfor %}
           </div>
-
-          <div class="stars-hint">Click to select rating</div>
+          <div class="muted-sm">Click stars to rate</div>
         </div>
       </div>
 
       <div class="field">
-        <label>Your feedback</label>
-        <textarea name="message" rows="4" placeholder="Share your experience..." required></textarea>
+        <label class="label">Message</label>
+        <textarea class="input" name="message" rows="4" placeholder="Share your experience..." required></textarea>
       </div>
 
-      <div class="actions">
-        <button class="btn-primary" type="submit">Submit Review</button>
-      </div>
-
+      <button class="btn" type="submit">Submit Review</button>
     </form>
   </div>
 
-  <div class="card reviews-list-card">
-    <h2 class="section-title">Recent Reviews</h2>
+  <div class="card">
+    <div class="card-title">Recent Reviews</div>
 
-    {% if reviews %}
-      <div class="reviews-list">
-        {% for r in reviews %}
+    <div class="review-list">
+      {% if reviews and reviews|length > 0 %}
+        {% for name, rating, message, created_at in reviews %}
           <div class="review-item">
             <div class="review-top">
-              <div class="review-user">
-                <div class="review-name">{{ r[0] }}</div>
-                <div class="review-date">{{ r[3] }}</div>
+              <div>
+                <div class="review-name">{{ name }}</div>
+                <div class="muted-sm">{{ created_at }}</div>
               </div>
-
               <div class="review-stars">
-                {% for _ in range(r[1]) %}★{% endfor %}
-                {% for _ in range(5 - r[1]) %}☆{% endfor %}
+                {% for _ in range(rating) %}★{% endfor %}
+                <span class="muted-sm">({{ rating }}/5)</span>
               </div>
             </div>
-
-            <div class="review-msg">
-              {{ r[2] }}
-            </div>
+            <div class="review-msg">{{ message }}</div>
           </div>
         {% endfor %}
-      </div>
-    {% else %}
-      <p class="empty-text">No reviews yet. Be the first to share feedback!</p>
-    {% endif %}
+      {% else %}
+        <div class="muted">No reviews yet. Be the first!</div>
+      {% endif %}
+    </div>
   </div>
-
-</section>
+</div>
 
 {% endblock %}
