@@ -1,156 +1,181 @@
 {% extends "base.html" %}
 {% block content %}
 
-<section class="grid">
-  <!-- LEFT -->
-  <div class="left">
-    <div class="hero">
-      <h1>Smart Silver Forecast</h1>
-      <p>
-        Pick <b>State/UT</b>, <b>Purity</b> and <b>Horizon</b>.
-        We predict <span class="chip">UP / DOWN</span> with confidence and show estimated prices.
-      </p>
-    </div>
+<section class="hero">
+  <div class="hero-left">
+    <h1 class="title">Smart Silver Forecast</h1>
+    <p class="subtitle">
+      Choose your <b>State/UT</b>, <b>Purity</b> and <b>Horizon</b>.
+      We predict direction <span class="chip">UP/DOWN</span> with confidence
+      and estimate prices for <b>1g / 10g / 100g</b>.
+    </p>
 
     <div class="card form-card">
-      <form method="POST" id="predictForm" class="form">
+      <form method="POST" class="form-grid" id="predictForm">
 
-        <!-- State -->
+        <!-- ✅ Custom dropdown: State -->
         <div class="field">
           <label>State / UT</label>
 
-          <input type="hidden" name="state" id="stateInput"
-            value="{{ result.state if result else states[0] }}">
+          <!-- hidden real value used by Flask -->
+          <input type="hidden" name="state" id="stateHidden"
+                 value="{{ result.state if result else states[0] }}">
 
-          <div class="dd" data-target="stateInput" id="stateDD">
-            <button type="button" class="dd-btn">
+          <div class="dd" data-dd="state">
+            <button class="dd-btn" type="button">
               <span class="dd-value" id="stateLabel">{{ result.state if result else states[0] }}</span>
-              <span class="dd-icon">▾</span>
+              <span class="dd-caret">▾</span>
             </button>
-            <div class="dd-menu">
-              {% for s in states %}
-                <div class="dd-item" data-value="{{ s }}">{{ s }}</div>
-              {% endfor %}
+
+            <div class="dd-panel">
+              <div class="dd-search">
+                <input type="text" class="dd-search-input" placeholder="Search state..." autocomplete="off">
+              </div>
+
+              <div class="dd-list">
+                {% for s in states %}
+                  <div class="dd-item" data-value="{{ s }}">{{ s }}</div>
+                {% endfor %}
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Horizon -->
+        <!-- ✅ Custom dropdown: Horizon -->
         <div class="field">
           <label>Horizon</label>
 
-          <input type="hidden" name="horizon" id="horizonInput"
-            value="{% if result and 'Hour' in result.horizon %}1h{% elif result and 'Month' in result.horizon %}1m{% else %}1d{% endif %}">
+          <input type="hidden" name="horizon" id="horizonHidden"
+                 value="{% if result and 'Hour' in result.horizon %}1h{% elif result and 'Month' in result.horizon %}1m{% else %}1d{% endif %}">
 
-          <div class="dd" data-target="horizonInput" id="horizonDD">
-            <button type="button" class="dd-btn">
+          <div class="dd" data-dd="horizon">
+            <button class="dd-btn" type="button">
               <span class="dd-value" id="horizonLabel">
                 {% if result and 'Hour' in result.horizon %}Next Hour{% elif result and 'Month' in result.horizon %}Next Month{% else %}Next Day{% endif %}
               </span>
-              <span class="dd-icon">▾</span>
+              <span class="dd-caret">▾</span>
             </button>
-            <div class="dd-menu">
-              <div class="dd-item" data-value="1h">Next Hour</div>
-              <div class="dd-item" data-value="1d">Next Day</div>
-              <div class="dd-item" data-value="1m">Next Month</div>
+
+            <div class="dd-panel">
+              <div class="dd-list">
+                <div class="dd-item" data-value="1h">Next Hour</div>
+                <div class="dd-item" data-value="1d">Next Day</div>
+                <div class="dd-item" data-value="1m">Next Month</div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Purity -->
+        <!-- ✅ Custom dropdown: Purity -->
         <div class="field">
           <label>Silver Purity</label>
 
-          <input type="hidden" name="purity" id="purityInput"
-            value="{{ result.purity if result else '999' }}">
+          <input type="hidden" name="purity" id="purityHidden"
+                 value="{{ result.purity if result else '999' }}">
 
-          <div class="dd" data-target="purityInput" id="purityDD">
-            <button type="button" class="dd-btn">
+          <div class="dd" data-dd="purity">
+            <button class="dd-btn" type="button">
               <span class="dd-value" id="purityLabel">
-                {% if result and result.purity == "925" %}925 (Sterling){% elif result and result.purity == "900" %}900{% elif result and result.purity == "800" %}800{% else %}999 (Fine Silver){% endif %}
+                {% if result and result.purity == "925" %}925 (Sterling)
+                {% elif result and result.purity == "900" %}900
+                {% elif result and result.purity == "800" %}800
+                {% else %}999 (Fine Silver){% endif %}
               </span>
-              <span class="dd-icon">▾</span>
+              <span class="dd-caret">▾</span>
             </button>
-            <div class="dd-menu">
-              <div class="dd-item" data-value="999">999 (Fine Silver)</div>
-              <div class="dd-item" data-value="925">925 (Sterling)</div>
-              <div class="dd-item" data-value="900">900</div>
-              <div class="dd-item" data-value="800">800</div>
+
+            <div class="dd-panel">
+              <div class="dd-list">
+                <div class="dd-item" data-value="999">999 (Fine Silver)</div>
+                <div class="dd-item" data-value="925">925 (Sterling)</div>
+                <div class="dd-item" data-value="900">900</div>
+                <div class="dd-item" data-value="800">800</div>
+              </div>
             </div>
           </div>
         </div>
 
-        <button class="btn-primary" type="submit">Run Prediction</button>
-
-        <div class="tip">
-          Tip: Day/Month predictions are usually more stable than Hour predictions.
+        <div class="field info-box">
+          <div class="info-title">What you’ll get</div>
+          <ul class="info-list">
+            <li>✅ Direction + Confidence</li>
+            <li>✅ Smooth trend chart</li>
+            <li>✅ Estimated prices (1g/10g/100g)</li>
+          </ul>
         </div>
+
+        <button class="btn-primary" type="submit">
+          <span class="btn-glow"></span>
+          Run Prediction
+        </button>
+
+        <div class="tip">Tip: Day/Month predictions are usually more stable than Hour predictions.</div>
       </form>
     </div>
 
-    <!-- RESULT -->
+    <!-- ✅ Prediction Result -->
     {% if result %}
-    <div class="card result-card" id="resultCard">
-      <div class="result-top">
+    <div class="card" id="resultCard" style="margin-top:14px;">
+      <div class="result-head">
         <div>
-          <div class="mini-title">PREDICTION RESULT</div>
-          <div class="big">{{ result.direction }} • {{ result.confidence }}% confidence</div>
-          <div class="muted">{{ result.horizon }} • {{ result.state }} • Purity {{ result.purity }}</div>
+          <div class="result-kicker">PREDICTION RESULT</div>
+          <div class="result-title">{{ result.direction }} • {{ result.confidence }}% confidence</div>
+          <div class="result-sub">{{ result.horizon }} • {{ result.state }} • Purity {{ result.purity }}</div>
         </div>
-        <div class="pill {{ 'pill-up' if result.direction=='UP' else 'pill-down' }}">
-          {{ result.direction }}
-        </div>
+        <div class="pill pill-{{ 'up' if result.direction == 'UP' else 'down' }}">{{ result.direction }}</div>
       </div>
 
-      <!-- GLOBAL CURRENT -->
-      <div class="bar">
-        <div class="bar-title">Current Silver (Global Market Reference)</div>
-        <div class="bar-val">
+      <!-- Current -->
+      <div class="result-strip">
+        <div class="strip-title">Current Silver Price (Market Reference)</div>
+        <div class="strip-value">
           ₹{{ "%.2f"|format(result.global_inr_kg/1000) }} / g
-          <span>•</span>
+          <span class="dot">•</span>
           ₹{{ "%.2f"|format(result.global_inr_kg) }} / kg
         </div>
-      </div>
-
-      <!-- INDIA RETAIL ESTIMATE -->
-      <div class="bar bar-green">
-        <div class="bar-title">India Retail Estimate (Approx)</div>
-        <div class="bar-val">
-          ₹{{ "%.2f"|format(result.india_retail_kg/1000) }} / g
-          <span>•</span>
-          ₹{{ "%.2f"|format(result.india_retail_kg) }} / kg
-        </div>
-        <div class="bar-sub">
-          Includes state premium + retail margin + ~{{ (result.gst_rate*100)|round(0) }}% GST (rough estimate).
+        <div class="strip-note">
+          Global SI=F converted to INR/kg using USDINR.
+          (Retail India rates can be higher due to GST + making + local margins.)
         </div>
       </div>
 
-      <!-- PREDICTED (Estimated) -->
-      <div class="bar bar-purple">
-        <div class="bar-title">Predicted Price (Estimated)</div>
-        <div class="bar-val">
+      <!-- Predicted -->
+      <div class="result-strip strip-green">
+        <div class="strip-title">Predicted Silver Price (Estimated)</div>
+        <div class="strip-value">
           ₹{{ "%.2f"|format(result.predicted.per_g) }} / g
-          <span>•</span>
+          <span class="dot">•</span>
           ₹{{ "%.2f"|format(result.predicted.per_g*1000) }} / kg
         </div>
+        <div class="strip-note">Includes state premium + selected purity factor.</div>
       </div>
 
-      <div class="amounts">
-        <div class="amt"><span>1g</span> ₹{{ result.predicted.p1 }}</div>
-        <div class="amt"><span>10g</span> ₹{{ result.predicted.p10 }}</div>
-        <div class="amt"><span>100g</span> ₹{{ result.predicted.p100 }}</div>
+      <!-- Amounts -->
+      <div class="amount-row">
+        <div class="amount-pill"><span>1g</span> <b>₹{{ result.predicted.p1 }}</b></div>
+        <div class="amount-pill"><span>10g</span> <b>₹{{ result.predicted.p10 }}</b></div>
+        <div class="amount-pill"><span>100g</span> <b>₹{{ result.predicted.p100 }}</b></div>
       </div>
 
-      <div class="disclaimer">
-        ⚠️ These are AI-based estimates using historical trends + live market data. Treat as reference — not guaranteed rates.
+      <!-- India retail estimate -->
+      <div class="result-strip strip-amber">
+        <div class="strip-title">India Retail Estimate (Optional)</div>
+        <div class="strip-value">
+          ₹{{ "%.2f"|format(result.india_retail_kg) }} / kg
+          <span class="dot">•</span>
+          ₹{{ "%.2f"|format(result.india_retail_kg/1000) }} / g
+        </div>
+        <div class="strip-note">
+          Approx = Global + State Premium + Retail Margin (₹{{ result.retail_margin_kg }}) + GST (~{{ (result.gst_rate*100)|round(1) }}%).
+        </div>
       </div>
     </div>
     {% endif %}
   </div>
 
   <!-- RIGHT -->
-  <div class="right">
-    <div class="card chart-card">
+  <div class="hero-right">
+    <div class="card chart-card" id="trendCard">
       <div class="card-title">Silver Trend (Last ~48 Hours)</div>
       <div class="chart-wrap">
         <canvas id="priceChart"></canvas>
@@ -159,52 +184,96 @@
     </div>
 
     {% if result %}
-    <div class="card chart-card" id="confCard">
-      <div class="card-title">Confidence (UP vs DOWN)</div>
+    <div class="card chart-card" id="confCard" style="margin-top:14px;">
+      <div class="card-title">Model Confidence (UP vs DOWN)</div>
       <div class="chart-wrap">
         <canvas id="confChart"></canvas>
       </div>
       <div class="card-foot">
-        UP: <b>{{ result.proba_up }}%</b> • DOWN: <b>{{ "%.2f"|format(100 - result.proba_up) }}%</b>
+        UP: <b>{{ result.proba_up }}%</b> &nbsp; • &nbsp;
+        DOWN: <b>{{ "%.2f"|format(100 - result.proba_up) }}%</b>
       </div>
     </div>
     {% endif %}
+
+    <div class="card connect-card" id="connectCard">
+      <div class="card-title">Connect with me</div>
+      <div class="btn-row">
+        <a class="btn-soft" href="{{ social.github }}" target="_blank" rel="noopener">🐙 GitHub</a>
+        <a class="btn-soft" href="{{ social.linkedin }}" target="_blank" rel="noopener">💼 LinkedIn</a>
+      </div>
+    </div>
   </div>
 </section>
 
 <script>
-  // Trend chart
+  // ---------- Trend chart (smooth) ----------
   const labels = {{ (labels if labels else []) | tojson }};
   const values = {{ (values if values else []) | tojson }};
 
   const priceCanvas = document.getElementById("priceChart");
   if (priceCanvas && labels.length && values.length) {
+    const ctx = priceCanvas.getContext("2d");
+    const g = ctx.createLinearGradient(0, 0, 0, 240);
+    g.addColorStop(0, "rgba(96,165,250,.55)");
+    g.addColorStop(1, "rgba(96,165,250,0)");
+
     new Chart(priceCanvas, {
       type: "line",
-      data: { labels, datasets: [{ data: values, tension: 0.35, borderWidth: 2, pointRadius: 0 }] },
+      data: {
+        labels,
+        datasets: [{
+          label: "Silver Close (USD/oz)",
+          data: values,
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.42,
+          fill: true,
+          backgroundColor: g
+        }]
+      },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: { duration: 900, easing: "easeOutQuart" },
         plugins: { legend: { display: false } },
-        scales: { x: { ticks: { maxTicksLimit: 8 } }, y: { ticks: { maxTicksLimit: 6 } } }
+        interaction: { intersect: false, mode: "index" },
+        scales: {
+          x: { ticks: { maxTicksLimit: 8 } },
+          y: { ticks: { maxTicksLimit: 6 } }
+        }
       }
     });
   }
 
-  // Confidence chart
-  {% if result %}
-  const upProb = {{ result.proba_up | tojson }};
-  const downProb = 100 - upProb;
+  // ---------- Confidence chart (smooth) ----------
+  const resultExists = {{ (true if result else false) | tojson }};
+  if (resultExists) {
+    const upProb = {{ (result.proba_up if result else 50) | tojson }};
+    const downProb = 100 - upProb;
 
-  const confCanvas = document.getElementById("confChart");
-  if (confCanvas) {
-    new Chart(confCanvas, {
-      type: "doughnut",
-      data: { labels: ["UP", "DOWN"], datasets: [{ data: [upProb, downProb], borderWidth: 0 }] },
-      options: { responsive: true, maintainAspectRatio: false, cutout: "72%", plugins: { legend: { position: "bottom" } } }
-    });
+    const confCanvas = document.getElementById("confChart");
+    if (confCanvas) {
+      new Chart(confCanvas, {
+        type: "doughnut",
+        data: {
+          labels: ["UP", "DOWN"],
+          datasets: [{
+            data: [upProb, downProb],
+            borderWidth: 0,
+            hoverOffset: 10
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 950, easing: "easeOutQuart" },
+          cutout: "72%",
+          plugins: { legend: { display: true, position: "bottom" } }
+        }
+      });
+    }
   }
-  {% endif %}
 </script>
 
 {% endblock %}
