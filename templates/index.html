@@ -72,3 +72,82 @@
             <div class="select-menu" role="listbox">
               <div class="select-options" data-options>
                 <div class="opt" role="option" data-opt="999">999 (Fine Silver)</div>
+                <div class="opt" role="option" data-opt="925">925 (Sterling)</div>
+                <div class="opt" role="option" data-opt="916">916 (Common)</div>
+              </div>
+            </div>
+          </div>
+          <input type="hidden" id="purityInput" value="999">
+        </div>
+
+        <div class="field checks">
+          <label class="ghost">Options</label>
+          <label class="check">
+            <input type="checkbox" checked id="showTrend">
+            <span>Trend chart</span>
+          </label>
+          <label class="check">
+            <input type="checkbox" checked id="showPrices">
+            <span>Estimated prices (1g/10g/100g)</span>
+          </label>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="predictBtn" type="button">
+        <span class="btn-text">Run Prediction</span>
+        <span class="btn-spin" aria-hidden="true"></span>
+      </button>
+
+      <div class="hint">Tip: Day/Month predictions are usually more stable than Hour predictions.</div>
+
+      <!-- Result panel (hidden until prediction runs) -->
+      <div class="result" id="resultBox" aria-live="polite">
+        <div class="result-head">
+          <div class="result-title">Prediction</div>
+          <div class="badge" id="dirBadge">—</div>
+        </div>
+
+        <div class="result-row">
+          <div class="muted">Confidence</div>
+          <div class="confidence">
+            <div class="bar"><div class="fill" id="confFill"></div></div>
+            <div class="confText" id="confText">—</div>
+          </div>
+        </div>
+
+        <div class="prices" id="pricesBox">
+          <div class="price">
+            <div class="muted">1g</div>
+            <div class="value" id="p1g">—</div>
+          </div>
+          <div class="price">
+            <div class="muted">10g</div>
+            <div class="value" id="p10g">—</div>
+          </div>
+          <div class="price">
+            <div class="muted">100g</div>
+            <div class="value" id="p100g">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="card card-chart" id="chartCard">
+      <div class="card-title">Silver Trend (Last ~48 Hours)</div>
+      <canvas id="trendChart" height="210"></canvas>
+      <div class="chart-note">Source: demo series (replace with your feed if available).</div>
+    </div>
+
+    <div class="card card-connect">
+      <div class="card-title">Connect with me</div>
+      <div class="connect-row">
+        <a class="pill pill-big" href="#" id="githubLink2">🐙 GitHub</a>
+        <a class="pill pill-big" href="#" id="linkedinLink2">💼 LinkedIn</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
