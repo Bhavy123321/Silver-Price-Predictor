@@ -1,58 +1,84 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <title>Silver Predictor</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{{ title if title else "Silver Predictor" }}</title>
 
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script defer src="{{ url_for('static', filename='app.js') }}"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
   <header class="topbar">
-    <div class="brand">
-      <div class="brand-mark"></div>
-      <div class="brand-text">
-        <div class="brand-title">Silver Predictor</div>
-        <div class="brand-sub">AI Direction Forecast • Purity • State Premium</div>
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-logo"></div>
+        <div class="brand-text">
+          <div class="brand-title">Silver Predictor</div>
+          <div class="brand-sub">AI Direction Forecast • Purity • State Premium</div>
+        </div>
       </div>
+
+      <nav class="nav">
+        <a class="nav-link" href="{{ url_for('index') }}">Dashboard</a>
+        <a class="nav-link" href="{{ url_for('about') }}">About</a>
+        <a class="nav-link" href="{{ url_for('reviews') }}">Reviews</a>
+        <a class="nav-btn" href="{{ social.github }}" target="_blank" rel="noopener">GitHub</a>
+        <a class="nav-btn" href="{{ social.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>
+
+        <button class="mode-toggle" id="modeToggle" type="button" title="Toggle theme">
+          <span class="mode-dot"></span>
+          <span class="mode-text">Dark</span>
+        </button>
+      </nav>
     </div>
-
-    <nav class="nav">
-      <a class="nav-link" href="{{ url_for('index') }}">Dashboard</a>
-      <a class="nav-link" href="{{ url_for('about') }}">About</a>
-      <a class="nav-link" href="{{ url_for('reviews') }}">Reviews</a>
-
-      <a class="nav-pill" href="{{ social.github }}" target="_blank" rel="noopener">GitHub</a>
-      <a class="nav-pill" href="{{ social.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>
-
-      <button class="mode-btn" type="button" id="themeToggle">
-        <span id="themeIcon">🌙</span>
-        <span id="themeText">Dark</span>
-      </button>
-    </nav>
   </header>
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="toast-wrap">
-        {% for category, message in messages %}
-          <div class="toast {{ 'toast-error' if category=='error' else 'toast-success' }}">
-            {{ message }}
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-  {% endwith %}
-
   <main class="page">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-wrap">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="footnote">
-    ⚠️ All prices are AI-based estimates using historical trends + live market data. Not guaranteed.
+  <footer class="footer">
+    <div>⚠️ Prices are AI-based estimates using historical trends + live market data — smart reference, not guaranteed rates.</div>
   </footer>
+
+  <script>
+    // ---------------------------
+    // Theme toggle (dark/light)
+    // ---------------------------
+    const root = document.documentElement;
+    const btn = document.getElementById("modeToggle");
+    const saved = localStorage.getItem("theme") || "dark";
+    root.setAttribute("data-theme", saved);
+
+    function syncToggle(){
+      const theme = root.getAttribute("data-theme");
+      btn.querySelector(".mode-text").textContent = theme === "dark" ? "Dark" : "Light";
+    }
+    syncToggle();
+
+    btn.addEventListener("click", () => {
+      const current = root.getAttribute("data-theme");
+      const next = current === "dark" ? "light" : "dark";
+      root.setAttribute("data-theme", next);
+      localStorage.setItem("theme", next);
+      syncToggle();
+    });
+  </script>
+
+  <script src="{{ url_for('static', filename='ui.js') }}"></script>
 </body>
 </html>
