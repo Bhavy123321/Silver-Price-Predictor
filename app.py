@@ -13,13 +13,13 @@ app.secret_key = "silver-predictor-secret"
 # YOUR SOCIAL LINKS (edit)
 # -------------------------
 SOCIAL = {
-    "github": "https://github.com/Bhavy123321",
-    "linkedin": "https://www.linkedin.com/in/bhavy-soni-6123a32b0/"
+    "github": "https://github.com/YOUR_GITHUB_USERNAME",
+    "linkedin": "https://www.linkedin.com/in/YOUR_LINKEDIN_USERNAME/"
 }
 
 # -------------------------
 # ALL INDIA: States + UTs
-# Premium here is a demo premium (₹ per kg)
+# Premium is demo premium (₹ per kg)
 # -------------------------
 STATE_PREMIUM = {
     # States
@@ -52,7 +52,7 @@ STATE_PREMIUM = {
     "Uttarakhand": 800,
     "West Bengal": 650,
 
-    # Union Territories
+    # UTs
     "Andaman and Nicobar Islands": 650,
     "Chandigarh": 850,
     "Dadra and Nagar Haveli and Daman and Diu": 700,
@@ -72,6 +72,13 @@ SILVER_PURITY = {
     "900": 0.90,
     "800": 0.80
 }
+
+# -------------------------
+# INDIA RETAIL ESTIMATE (simple model)
+# These are just to approximate Google-like retail range
+# -------------------------
+DEFAULT_GST_RATE = 0.03           # 3% GST (approx)
+DEFAULT_RETAIL_MARGIN_KG = 25000  # extra ₹/kg margin seen in retail markets (adjust as you want)
 
 # -------------------------
 # Load ML Models
@@ -124,41 +131,87 @@ def get_reviews(limit=60):
 # Helpers
 # -------------------------
 def usd_oz_to_inr_kg(price_usd_per_oz, usd_inr):
-    # 1 troy ounce = 31.1034768 grams
+    # 1 kg = 32.1507466 troy ounces
     oz_per_kg = 1000.0 / 31.1034768
     return float(price_usd_per_oz) * float(usd_inr) * oz_per_kg
 
-def predict_with_model(model, X_row):
+def safe_close_series(df):
+    """
+    yfinance sometimes returns MultiIndex columns.
+    We always prefer Close (NOT adjusted) because futures can behave weird with auto_adjust.
+    """
+    if df is None or df.empty:
+        return None
+    if isinstance(df.columns, pd.MultiIndex):
+        # If MultiIndex, Close is a DataFrame; take first column
+        if "Close" in df:
+            return df["Close"].iloc[:, 0].dropna()
+        return None
+    if "Close" in df.columns:
+        return df["Close"].dropna()
+    return None
+
+def prepare_X_for_model(model, X_df: pd.DataFrame):
+    """
+    Fixes: "X does not have valid feature names" and feature mismatch errors.
+    - If model has feature_names_in_, reindex to that exact order.
+    - Fill missing with 0.
+    """
+    if X_df is None or X_df.empty:
+        return None
+
+    try:
+        if hasattr(model, "feature_names_in_"):
+            cols = list(model.feature_names_in_)
+            X_df = X_df.reindex(columns=cols, fill_value=0)
+            return X_df
+        return X_df
+    except Exception:
+        # fallback: raw numpy
+        return X_df.values
+
+def predict_with_model(model, X_row: pd.DataFrame):
     """
     Returns: direction, confidence%, proba_up%
     direction: UP or DOWN
     confidence: model confidence for predicted class
     proba_up: probability of UP
     """
-    pred = int(model.predict(X_row)[0])
-    proba_up = float(model.predict_proba(X_row)[0][1])
+    X_ready = prepare_X_for_model(model, X_row)
+    if X_ready is None:
+        raise ValueError("No features to predict.")
+
+    pred = int(model.predict(X_ready)[0])
+
+    # proba_up
+    if hasattr(model, "predict_proba"):
+        proba_up = float(model.predict_proba(X_ready)[0][1])
+    else:
+        # Some models don’t support proba
+        proba_up = 0.5
+
     direction = "UP" if pred == 1 else "DOWN"
     confidence = proba_up if pred == 1 else (1 - proba_up)
+
     return direction, round(confidence * 100, 2), round(proba_up * 100, 2)
 
-def safe_close_series(df):
-    if df is None or df.empty:
-        return None
-    if isinstance(df.columns, pd.MultiIndex):
-        return df["Close"].iloc[:, 0].dropna()
-    return df["Close"].dropna()
-
 def fetch_hourly_series(days="5d"):
+    """
+    For chart
+    """
     try:
-        silver = yf.download("SI=F", period=days, interval="1h", auto_adjust=True, progress=False)
+        silver = yf.download("SI=F", period=days, interval="1h", auto_adjust=False, progress=False)
         series = safe_close_series(silver)
         return series
     except Exception:
         return None
 
 def fetch_hourly_features():
-    silver = yf.download("SI=F", period="5d", interval="1h", auto_adjust=True, progress=False)
-    usdinr = yf.download("USDINR=X", period="5d", interval="1h", auto_adjust=True, progress=False)
+    """
+    Features for Next Hour model
+    """
+    silver = yf.download("SI=F", period="5d", interval="1h", auto_adjust=False, progress=False)
+    usdinr = yf.download("USDINR=X", period="5d", interval="1h", auto_adjust=False, progress=False)
 
     silver_close = safe_close_series(silver)
     usd_inr = safe_close_series(usdinr)
@@ -167,12 +220,13 @@ def fetch_hourly_features():
         return None, None
 
     df = pd.concat([silver_close.rename("silver_close"), usd_inr.rename("usd_inr")], axis=1).dropna()
+
     df["lag_1"] = df["silver_close"].shift(1)
     df["lag_2"] = df["silver_close"].shift(2)
     df["lag_3"] = df["silver_close"].shift(3)
     df["hour"] = df.index.hour
-    df = df.dropna()
 
+    df = df.dropna()
     if df.empty:
         return None, None
 
@@ -181,8 +235,11 @@ def fetch_hourly_features():
     return X_last, latest
 
 def fetch_daily_features_for_day():
-    silver = yf.download("SI=F", period="120d", interval="1d", auto_adjust=True, progress=False)
-    usdinr = yf.download("USDINR=X", period="120d", interval="1d", auto_adjust=True, progress=False)
+    """
+    FIX: Next Day uses DAILY data (stable)
+    """
+    silver = yf.download("SI=F", period="200d", interval="1d", auto_adjust=False, progress=False)
+    usdinr = yf.download("USDINR=X", period="200d", interval="1d", auto_adjust=False, progress=False)
 
     silver_close = safe_close_series(silver)
     usd_inr = safe_close_series(usdinr)
@@ -191,14 +248,17 @@ def fetch_daily_features_for_day():
         return None, None
 
     df = pd.concat([silver_close.rename("silver_close"), usd_inr.rename("usd_inr")], axis=1).dropna()
+
     df["lag_1"] = df["silver_close"].shift(1)
     df["lag_2"] = df["silver_close"].shift(2)
     df["lag_3"] = df["silver_close"].shift(3)
+
     df["ret_1"] = df["silver_close"].pct_change(1)
     df["ret_5"] = df["silver_close"].pct_change(5)
-    df["dayofweek"] = df.index.dayofweek
-    df = df.dropna()
 
+    df["dayofweek"] = df.index.dayofweek
+
+    df = df.dropna()
     if df.empty:
         return None, None
 
@@ -207,8 +267,11 @@ def fetch_daily_features_for_day():
     return X_last, latest
 
 def fetch_daily_features_for_month():
-    silver = yf.download("SI=F", period="2y", interval="1d", auto_adjust=True, progress=False)
-    usdinr = yf.download("USDINR=X", period="2y", interval="1d", auto_adjust=True, progress=False)
+    """
+    Next Month features from daily data (2 years)
+    """
+    silver = yf.download("SI=F", period="2y", interval="1d", auto_adjust=False, progress=False)
+    usdinr = yf.download("USDINR=X", period="2y", interval="1d", auto_adjust=False, progress=False)
 
     silver_close = safe_close_series(silver)
     usd_inr = safe_close_series(usdinr)
@@ -217,17 +280,20 @@ def fetch_daily_features_for_month():
         return None, None
 
     df = pd.concat([silver_close.rename("silver_close"), usd_inr.rename("usd_inr")], axis=1).dropna()
+
     df["lag_1"]  = df["silver_close"].shift(1)
     df["lag_5"]  = df["silver_close"].shift(5)
     df["lag_10"] = df["silver_close"].shift(10)
     df["lag_20"] = df["silver_close"].shift(20)
+
     df["ret_1"]  = df["silver_close"].pct_change(1)
     df["ret_5"]  = df["silver_close"].pct_change(5)
     df["ret_20"] = df["silver_close"].pct_change(20)
+
     df["dayofweek"] = df.index.dayofweek
     df["month"] = df.index.month
-    df = df.dropna()
 
+    df = df.dropna()
     if df.empty:
         return None, None
 
@@ -235,25 +301,41 @@ def fetch_daily_features_for_month():
         ["silver_close", "usd_inr", "lag_1", "lag_5", "lag_10", "lag_20",
          "ret_1", "ret_5", "ret_20", "dayofweek", "month"]
     ].iloc[[-1]]
+
     latest = df.iloc[-1]
     return X_last, latest
 
-def build_price_cards(base_inr_kg, premium_per_kg, purity_factor):
+def build_predicted_prices(base_inr_kg, premium_per_kg, purity_factor):
+    """
+    Predicted (Estimated) prices for 1g / 10g / 100g, based on:
+    base market converted + state premium + purity factor
+    """
     base_per_g = (base_inr_kg / 1000.0) * purity_factor
     premium_per_g = (premium_per_kg / 1000.0)
 
+    per_g = base_per_g + premium_per_g
+
     def price_for(g):
-        return round((base_per_g + premium_per_g) * g, 2)
+        return round(per_g * g, 2)
 
     return {
-        "per_g": round(base_per_g + premium_per_g, 2),
+        "per_g": round(per_g, 2),
         "p1": price_for(1),
         "p10": price_for(10),
         "p100": price_for(100),
     }
 
+def build_india_retail_estimate(global_inr_kg, state_premium_kg, gst=DEFAULT_GST_RATE, retail_margin_kg=DEFAULT_RETAIL_MARGIN_KG):
+    """
+    India retail estimate (rough):
+    global reference + state premium + retail margin, then GST
+    """
+    pre_tax = float(global_inr_kg) + float(state_premium_kg) + float(retail_margin_kg)
+    post_tax = pre_tax * (1 + float(gst))
+    return round(post_tax, 2)
+
 # -------------------------
-# ✅ DASHBOARD MUST BE HOME
+# Routes
 # -------------------------
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -269,13 +351,14 @@ def index():
 
     if request.method == "POST":
         state = request.form.get("state")
-        horizon = request.form.get("horizon")
-        purity = request.form.get("purity")
+        horizon = request.form.get("horizon")   # 1h / 1d / 1m
+        purity = request.form.get("purity")     # 999/925/900/800
 
         premium = STATE_PREMIUM.get(state, 0)
         purity_factor = SILVER_PURITY.get(purity, 1.0)
 
         try:
+            # NEXT HOUR
             if horizon == "1h":
                 X_last, latest = fetch_hourly_features()
                 if X_last is None:
@@ -284,37 +367,35 @@ def index():
 
                 direction, confidence, proba_up = predict_with_model(model_1h, X_last)
                 horizon_title = "Next Hour"
-                base_inr_kg = usd_oz_to_inr_kg(latest["silver_close"], latest["usd_inr"])
+                global_inr_kg = usd_oz_to_inr_kg(latest["silver_close"], latest["usd_inr"])
 
+            # NEXT DAY (FIXED)
             elif horizon == "1d":
                 X_last, latest = fetch_daily_features_for_day()
                 if X_last is None:
                     flash("Could not fetch daily market data right now. Please try again.", "error")
                     return redirect(url_for("index"))
 
-                try:
-                    direction, confidence, proba_up = predict_with_model(model_1d, X_last)
-                except Exception:
-                    direction, confidence, proba_up = predict_with_model(model_1d, X_last.values)
-
+                direction, confidence, proba_up = predict_with_model(model_1d, X_last)
                 horizon_title = "Next Day"
-                base_inr_kg = usd_oz_to_inr_kg(latest["silver_close"], latest["usd_inr"])
+                global_inr_kg = usd_oz_to_inr_kg(latest["silver_close"], latest["usd_inr"])
 
+            # NEXT MONTH
             else:
                 X_last, latest = fetch_daily_features_for_month()
                 if X_last is None:
                     flash("Could not fetch daily market data right now. Please try again.", "error")
                     return redirect(url_for("index"))
 
-                try:
-                    direction, confidence, proba_up = predict_with_model(model_1m, X_last)
-                except Exception:
-                    direction, confidence, proba_up = predict_with_model(model_1m, X_last.values)
-
+                direction, confidence, proba_up = predict_with_model(model_1m, X_last)
                 horizon_title = "Next Month (approx)"
-                base_inr_kg = usd_oz_to_inr_kg(latest["silver_close"], latest["usd_inr"])
+                global_inr_kg = usd_oz_to_inr_kg(latest["silver_close"], latest["usd_inr"])
 
-            price_cards = build_price_cards(base_inr_kg, premium, purity_factor)
+            # Predicted (Estimated) — per gram etc.
+            predicted_prices = build_predicted_prices(global_inr_kg, premium, purity_factor)
+
+            # India retail estimate (to match Google-like higher range)
+            india_retail_kg = build_india_retail_estimate(global_inr_kg, premium)
 
             result = {
                 "state": state,
@@ -323,12 +404,24 @@ def index():
                 "confidence": confidence,
                 "proba_up": proba_up,
                 "purity": purity,
+
+                # global reference (converted)
+                "global_inr_kg": round(float(global_inr_kg), 2),
+
+                # predicted estimates (with purity + premium)
+                "predicted": predicted_prices,
+
+                # state premium
                 "premium_per_kg": premium,
-                "base_inr_kg": round(base_inr_kg, 2),
-                "prices": price_cards
+
+                # india retail estimate (rough)
+                "india_retail_kg": india_retail_kg,
+                "gst_rate": DEFAULT_GST_RATE,
+                "retail_margin_kg": DEFAULT_RETAIL_MARGIN_KG
             }
 
-        except Exception:
+        except Exception as e:
+            print("PREDICTION ERROR:", str(e))  # helpful on Railway logs
             flash("Something went wrong while calculating prediction. Please try again.", "error")
             return redirect(url_for("index"))
 
@@ -367,7 +460,7 @@ def reviews():
     all_reviews = get_reviews(limit=60)
     return render_template("reviews.html", reviews=all_reviews, social=SOCIAL)
 
-# ✅ IMPORTANT: do NOT redirect "/" to reviews anywhere
+# ✅ For Railway/Gunicorn: it needs a top-level "app"
+# gunicorn will use: app:app
 if __name__ == "__main__":
     app.run(debug=True)
-
