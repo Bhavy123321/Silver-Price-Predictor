@@ -1,20 +1,34 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="card">
-  <div class="card-title">About Silver Predictor</div>
-  <p class="lead" style="margin-top:10px;">
-    Silver Predictor is a demo ML project that estimates silver direction (UP/DOWN) for different horizons
-    using historical price patterns and USD/INR reference data.
+<div class="card page-card">
+  <h2>About Silver Predictor</h2>
+  <p class="muted">
+    This project predicts the direction of silver price movement (UP/DOWN) using historical trends + live market signals.
+    It also shows estimated prices for 1g/10g/100g with state premium and purity.
   </p>
 
-  <div class="notice" style="margin-top:14px;">
-    ⚠️ Disclaimer: These are AI-based estimates and should not be treated as guaranteed market rates.
+  <div class="split">
+    <div class="mini card-inner">
+      <h3>What the model does</h3>
+      <ul>
+        <li>Predicts UP/DOWN direction</li>
+        <li>Gives confidence score</li>
+        <li>Shows trend chart</li>
+      </ul>
+    </div>
+    <div class="mini card-inner">
+      <h3>Important note</h3>
+      <p class="muted">
+        All prices are estimates and may differ from local retail markets.
+        Use as a reference only.
+      </p>
+    </div>
   </div>
 
-  <div class="btn-row" style="margin-top:14px;">
-    <a class="btn-soft" href="{{ social.github }}" target="_blank">🐙 GitHub</a>
-    <a class="btn-soft" href="{{ social.linkedin }}" target="_blank">💼 LinkedIn</a>
+  <div class="connect">
+    <a class="btn-soft" href="{{ social.github }}" target="_blank" rel="noopener">🐙 GitHub</a>
+    <a class="btn-soft" href="{{ social.linkedin }}" target="_blank" rel="noopener">💼 LinkedIn</a>
   </div>
 </div>
 
