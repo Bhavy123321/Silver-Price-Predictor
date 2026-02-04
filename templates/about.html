@@ -1,35 +1,25 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="card page-card">
-  <h2>About Silver Predictor</h2>
-  <p class="muted">
-    This project predicts the direction of silver price movement (UP/DOWN) using historical trends + live market signals.
-    It also shows estimated prices for 1g/10g/100g with state premium and purity.
-  </p>
+<section class="page">
+  <h2 class="page-title">About</h2>
+  <div class="card page-card">
+    <p>
+      <b>Silver Predictor</b> is a small ML + Flask project that predicts the short-term
+      direction of silver price movement (UP/DOWN) based on selected inputs like
+      <b>State/UT</b>, <b>Purity</b>, and <b>Horizon</b>.
+    </p>
+    <p class="muted">
+      Note: This is an experimental educational project. Predictions are not financial advice.
+    </p>
 
-  <div class="split">
-    <div class="mini card-inner">
-      <h3>What the model does</h3>
-      <ul>
-        <li>Predicts UP/DOWN direction</li>
-        <li>Gives confidence score</li>
-        <li>Shows trend chart</li>
-      </ul>
-    </div>
-    <div class="mini card-inner">
-      <h3>Important note</h3>
-      <p class="muted">
-        All prices are estimates and may differ from local retail markets.
-        Use as a reference only.
-      </p>
+    <div class="stack">
+      <div class="stack-item"><b>Backend:</b> Flask (Python)</div>
+      <div class="stack-item"><b>UI:</b> Dark analytics dashboard</div>
+      <div class="stack-item"><b>Charts:</b> Chart.js</div>
+      <div class="stack-item"><b>Hosting:</b> Railway</div>
     </div>
   </div>
-
-  <div class="connect">
-    <a class="btn-soft" href="{{ social.github }}" target="_blank" rel="noopener">🐙 GitHub</a>
-    <a class="btn-soft" href="{{ social.linkedin }}" target="_blank" rel="noopener">💼 LinkedIn</a>
-  </div>
-</div>
+</section>
 
 {% endblock %}
