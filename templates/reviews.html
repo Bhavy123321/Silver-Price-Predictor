@@ -1,63 +1,37 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="reviews">
-  <div class="card">
-    <div class="card-title">Leave a Review</div>
+<section class="page">
+  <h2 class="page-title">Reviews</h2>
 
-    <form method="POST" class="form" style="margin-top:14px;">
-      <div class="form-row">
-        <div class="field">
-          <label class="label">Your name</label>
-          <input class="input" name="name" placeholder="Enter your name" required>
-        </div>
-
-        <div class="field">
-          <label class="label">Rating</label>
-          <div class="stars">
-            {% for r in range(5,0,-1) %}
-              <input type="radio" id="star{{r}}" name="rating" value="{{r}}" {% if r==5 %}checked{% endif %}>
-              <label for="star{{r}}">★</label>
-            {% endfor %}
-          </div>
-          <div class="muted-sm">Click stars to rate</div>
+  <div class="grid-reviews">
+    <div class="card review">
+      <div class="review-head">
+        <div class="avatar">A</div>
+        <div>
+          <div class="review-name">Anonymous</div>
+          <div class="review-meta muted">UI feedback</div>
         </div>
       </div>
+      <p class="review-text">Clean dashboard look. Prediction box feels professional.</p>
+    </div>
 
-      <div class="field">
-        <label class="label">Message</label>
-        <textarea class="input" name="message" rows="4" placeholder="Share your experience..." required></textarea>
+    <div class="card review">
+      <div class="review-head">
+        <div class="avatar">B</div>
+        <div>
+          <div class="review-name">Beta User</div>
+          <div class="review-meta muted">Feature request</div>
+        </div>
       </div>
-
-      <button class="btn" type="submit">Submit Review</button>
-    </form>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Recent Reviews</div>
-
-    <div class="review-list">
-      {% if reviews and reviews|length > 0 %}
-        {% for name, rating, message, created_at in reviews %}
-          <div class="review-item">
-            <div class="review-top">
-              <div>
-                <div class="review-name">{{ name }}</div>
-                <div class="muted-sm">{{ created_at }}</div>
-              </div>
-              <div class="review-stars">
-                {% for _ in range(rating) %}★{% endfor %}
-                <span class="muted-sm">({{ rating }}/5)</span>
-              </div>
-            </div>
-            <div class="review-msg">{{ message }}</div>
-          </div>
-        {% endfor %}
-      {% else %}
-        <div class="muted">No reviews yet. Be the first!</div>
-      {% endif %}
+      <p class="review-text">Would love to see more historical trend options and confidence explanation.</p>
     </div>
   </div>
-</div>
+
+  <div class="card page-card">
+    <h3 class="mini-title">Add your review</h3>
+    <p class="muted">In your version, you can store reviews in DB or a file. This page is ready for that integration.</p>
+  </div>
+</section>
 
 {% endblock %}
