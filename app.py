@@ -1,232 +1,183 @@
-import os
-import pickle
-import traceback
-from datetime import datetime, timedelta
-
-import numpy as np
+from flask import Flask, render_template, request, redirect, url_for, flash
+import joblib
+import yfinance as yf
 import pandas as pd
-from flask import Flask, render_template, request, jsonify
-
-# -----------------------------
-# CONFIG (EDIT THESE 2)
-# -----------------------------
-MODEL_FILE = "model.pkl"          # <-- change to your actual .pkl file name
-TEMPLATE_NAME = "index.html"      # <-- change if your template name is different
-
-# MUST match training feature order exactly
-FEATURE_COLS = [
-    # Replace with your real features
-    "Open", "High", "Low", "Close", "Volume",
-    "MA_7", "MA_14", "RSI_14"
-]
+import sqlite3
+import os
+from datetime import datetime
 
 app = Flask(__name__)
+app.secret_key = "silver-predictor-secret"
 
-# -----------------------------
-# LOG REQUESTS (so you can see hits in Railway logs)
-# -----------------------------
-@app.before_request
-def log_request():
-    try:
-        # Shows if Railway is actually reaching your app
-        print(f"➡️ {request.method} {request.path}")
-    except Exception:
-        pass
+# -------------------------
+# SOCIAL LINKS
+# -------------------------
+SOCIAL = {
+    "github": "https://github.com/YOUR_GITHUB",
+    "linkedin": "https://linkedin.com/in/YOUR_LINKEDIN"
+}
 
+# -------------------------
+# STATE PREMIUMS (₹/kg)
+# -------------------------
+STATE_PREMIUM = {
+    "Andaman and Nicobar Islands": 650,
+    "Andhra Pradesh": 700,
+    "Arunachal Pradesh": 600,
+    "Assam": 650,
+    "Bihar": 750,
+    "Chandigarh": 850,
+    "Chhattisgarh": 700,
+    "Delhi": 900,
+    "Goa": 650,
+    "Gujarat": 800,
+    "Haryana": 850,
+    "Himachal Pradesh": 700,
+    "Jammu and Kashmir": 750,
+    "Jharkhand": 700,
+    "Karnataka": 650,
+    "Kerala": 600,
+    "Madhya Pradesh": 720,
+    "Maharashtra": 1000,
+    "Odisha": 700,
+    "Punjab": 850,
+    "Rajasthan": 750,
+    "Tamil Nadu": 600,
+    "Telangana": 650,
+    "Uttar Pradesh": 850,
+    "Uttarakhand": 800,
+    "West Bengal": 650
+}
 
-# -----------------------------
-# LOAD MODEL ONCE (fast + stable)
-# -----------------------------
-def load_model():
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(base_dir, MODEL_FILE)
-    if not os.path.exists(model_path):
-        raise FileNotFoundError(f"❌ Model file not found: {model_path}")
-    with open(model_path, "rb") as f:
-        return pickle.load(f)
+# -------------------------
+# SILVER PURITY FACTOR
+# -------------------------
+SILVER_PURITY = {
+    "999": 1.0,
+    "925": 0.925,
+    "900": 0.9,
+    "800": 0.8
+}
 
-try:
-    model = load_model()
-    print("✅ Model loaded successfully")
-except Exception as e:
-    model = None
-    print("❌ Model load failed:", str(e))
-    print(traceback.format_exc())
+# -------------------------
+# LOAD MODELS
+# -------------------------
+model_1h = joblib.load("models/model_next_hour.joblib")
+model_1d = joblib.load("models/model_next_day.joblib")
+model_1m = joblib.load("models/model_next_month.joblib")
 
+# -------------------------
+# DATABASE (REVIEWS)
+# -------------------------
+DB_PATH = os.path.join(os.path.dirname(__file__), "reviews.db")
 
-# -----------------------------
-# ROUTES
-# -----------------------------
-@app.get("/health")
-def health():
-    # Railway routing/healthcheck test
-    return "ok", 200
+def init_db():
+    with sqlite3.connect(DB_PATH) as con:
+        con.execute("""
+        CREATE TABLE IF NOT EXISTS reviews(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            rating INTEGER,
+            message TEXT,
+            created_at TEXT
+        )
+        """)
+init_db()
 
-
-@app.get("/")
-def home():
-    """
-    Keep this route super light.
-    If template missing, still return a plain message (no hang).
-    """
-    try:
-        return render_template(TEMPLATE_NAME)
-    except Exception as e:
-        print("⚠️ Template render failed:", str(e))
-        return "App is running ✅ (template missing or error)", 200
-
-
-# -----------------------------
+# -------------------------
 # HELPERS
-# -----------------------------
-def safe_predict(X: np.ndarray) -> float:
-    if model is None:
-        raise RuntimeError("Model is not loaded. Check model file name/path.")
-    pred = model.predict(X)
-    return float(np.ravel(pred)[0])
+# -------------------------
+def usd_oz_to_inr_kg(price_usd_oz, usd_inr):
+    return price_usd_oz * usd_inr * (1000 / 31.1035)
 
+def fetch_market():
+    silver = yf.download("SI=F", period="5d", interval="1d", progress=False)
+    usd = yf.download("USDINR=X", period="5d", interval="1d", progress=False)
 
-def build_X_from_payload(payload: dict) -> np.ndarray:
-    """
-    Supports:
-      - payload["features"] = [....]
-      - payload["features_dict"] = { "Open":..., ... }
-    """
-    if "features_dict" in payload and payload["features_dict"] is not None:
-        fd = payload["features_dict"]
-        if not isinstance(fd, dict):
-            raise ValueError("features_dict must be an object")
+    if silver.empty or usd.empty:
+        return None, None
 
-        row = []
-        for col in FEATURE_COLS:
-            if col not in fd:
-                raise ValueError(f"Missing feature '{col}' in features_dict")
-            row.append(float(fd[col]))
+    return float(silver["Close"].iloc[-1]), float(usd["Close"].iloc[-1])
 
-        X = np.array(row, dtype=float).reshape(1, -1)
+def predict(model, X):
+    pred = model.predict(X)[0]
+    proba = model.predict_proba(X)[0][1]
+    return ("UP" if pred == 1 else "DOWN", round(proba * 100, 2))
 
-    elif "features" in payload and payload["features"] is not None:
-        fl = payload["features"]
-        if not isinstance(fl, list):
-            raise ValueError("features must be an array")
+# -------------------------
+# ROUTES
+# -------------------------
+@app.route("/", methods=["GET", "POST"])
+def index():
+    result = None
 
-        X = np.array(fl, dtype=float)
-        if X.ndim == 1:
-            X = X.reshape(1, -1)
+    if request.method == "POST":
+        try:
+            state = request.form["state"]
+            horizon = request.form["horizon"]
+            purity = request.form["purity"]
 
-    else:
-        raise ValueError("Send 'features' (array) OR 'features_dict' (object).")
+            silver_usd, usd_inr = fetch_market()
+            if silver_usd is None:
+                flash("Market data unavailable", "error")
+                return redirect(url_for("index"))
 
-    if X.shape[1] != len(FEATURE_COLS):
-        raise ValueError(f"Feature count mismatch. Expected {len(FEATURE_COLS)} got {X.shape[1]}")
+            base_kg = usd_oz_to_inr_kg(silver_usd, usd_inr)
+            premium = STATE_PREMIUM[state]
+            purity_factor = SILVER_PURITY[purity]
 
-    if not np.isfinite(X).all():
-        raise ValueError("Features contain NaN/inf.")
+            final_per_g = ((base_kg + premium) / 1000) * purity_factor
 
-    return X
+            X = [[silver_usd, usd_inr]]
 
+            if horizon == "1h":
+                direction, conf = predict(model_1h, X)
+                horizon_label = "Next Hour"
+            elif horizon == "1d":
+                direction, conf = predict(model_1d, X)
+                horizon_label = "Next Day"
+            else:
+                direction, conf = predict(model_1m, X)
+                horizon_label = "Next Month"
 
-def compute_next_day_X(last_rows: list) -> np.ndarray:
-    """
-    Builds next-day features safely from history rows.
-    last_rows: list of dict rows (from frontend)
-    """
-    if not last_rows or not isinstance(last_rows, list):
-        raise ValueError("last_rows is missing or invalid")
+            result = {
+                "state": state,
+                "horizon": horizon_label,
+                "purity": purity,
+                "direction": direction,
+                "confidence": conf,
+                "base_inr_kg": round(base_kg, 2),
+                "prices": {
+                    "per_g": round(final_per_g, 2),
+                    "p1": round(final_per_g, 2),
+                    "p10": round(final_per_g * 10, 2),
+                    "p100": round(final_per_g * 100, 2)
+                }
+            }
 
-    df = pd.DataFrame(last_rows)
-    if df.empty:
-        raise ValueError("History dataframe is empty")
+        except Exception as e:
+            print("ERROR:", e)
+            flash("Something went wrong. Please try again.", "error")
 
-    # Ensure numeric base columns if present
-    for c in ["Open", "High", "Low", "Close", "Volume"]:
-        if c in df.columns:
-            df[c] = pd.to_numeric(df[c], errors="coerce")
+    return render_template(
+        "index.html",
+        states=STATE_PREMIUM.keys(),
+        result=result,
+        social=SOCIAL
+    )
 
-    # Compute indicators ONLY if your feature list requires them
-    if "Close" in df.columns:
-        close = pd.to_numeric(df["Close"], errors="coerce")
+@app.route("/about")
+def about():
+    return render_template("about.html", social=SOCIAL)
 
-        if "MA_7" in FEATURE_COLS:
-            df["MA_7"] = close.rolling(7, min_periods=1).mean()
+@app.route("/reviews")
+def reviews():
+    with sqlite3.connect(DB_PATH) as con:
+        rows = con.execute("SELECT name, rating, message, created_at FROM reviews ORDER BY id DESC").fetchall()
+    return render_template("reviews.html", reviews=rows, social=SOCIAL)
 
-        if "MA_14" in FEATURE_COLS:
-            df["MA_14"] = close.rolling(14, min_periods=1).mean()
-
-        if "RSI_14" in FEATURE_COLS:
-            delta = close.diff()
-            gain = delta.clip(lower=0).rolling(14, min_periods=1).mean()
-            loss = (-delta.clip(upper=0)).rolling(14, min_periods=1).mean()
-            rs = gain / loss.replace(0, np.nan)
-            rsi = 100 - (100 / (1 + rs))
-            df["RSI_14"] = rsi.fillna(50)
-
-    missing = [c for c in FEATURE_COLS if c not in df.columns]
-    if missing:
-        raise ValueError(f"Missing required columns for next-day: {missing}")
-
-    last = df.iloc[-1][FEATURE_COLS]
-    X_next = np.array(last, dtype=float).reshape(1, -1)
-    X_next = np.nan_to_num(X_next, nan=0.0, posinf=0.0, neginf=0.0)
-
-    if not np.isfinite(X_next).all():
-        raise ValueError("Next-day features still contain NaN/inf after cleaning.")
-
-    return X_next
-
-
-# -----------------------------
-# API: Predict Today
-# -----------------------------
-@app.post("/predict")
-def predict():
-    try:
-        payload = request.get_json(silent=True) or {}
-        X = build_X_from_payload(payload)
-        pred_value = safe_predict(X)
-        return jsonify({"success": True, "prediction": pred_value})
-    except Exception as e:
-        print("❌ /predict error:", str(e))
-        print(traceback.format_exc())
-        return jsonify({
-            "success": False,
-            "message": "Something went wrong while calculating prediction. Please try again.",
-            "debug_error": str(e)
-        }), 500
-
-
-# -----------------------------
-# API: Predict Next Day
-# -----------------------------
-@app.post("/predict-next-day")
-def predict_next_day():
-    try:
-        payload = request.get_json(silent=True) or {}
-
-        if "last_rows" in payload and payload["last_rows"]:
-            X_next = compute_next_day_X(payload["last_rows"])
-        else:
-            # Fallback: if frontend doesn't send history, use direct features
-            X_next = build_X_from_payload(payload)
-
-        pred_value = safe_predict(X_next)
-        tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
-
-        return jsonify({"success": True, "date": tomorrow, "prediction": pred_value})
-
-    except Exception as e:
-        print("❌ /predict-next-day error:", str(e))
-        print(traceback.format_exc())
-        return jsonify({
-            "success": False,
-            "message": "Something went wrong while calculating prediction. Please try again.",
-            "debug_error": str(e)
-        }), 500
-
-
-# -----------------------------
+# -------------------------
 # LOCAL RUN
-# -----------------------------
+# -------------------------
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", "5000"))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=8080, debug=True)
