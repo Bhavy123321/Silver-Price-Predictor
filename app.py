@@ -1,143 +1,232 @@
-from flask import Flask, render_template, request, jsonify
 import os
-import math
+import pickle
+import traceback
 from datetime import datetime, timedelta
-import random
 
-app = Flask(__name__, template_folder="templates", static_folder="static")
+import numpy as np
+import pandas as pd
+from flask import Flask, render_template, request, jsonify
 
 # -----------------------------
-# Helpers (simple demo logic)
-# Replace this with your real ML model prediction
+# CONFIG (EDIT THESE 2)
 # -----------------------------
-def safe_float(x, default=None):
+MODEL_FILE = "model.pkl"          # <-- change to your actual .pkl file name
+TEMPLATE_NAME = "index.html"      # <-- change if your template name is different
+
+# MUST match training feature order exactly
+FEATURE_COLS = [
+    # Replace with your real features
+    "Open", "High", "Low", "Close", "Volume",
+    "MA_7", "MA_14", "RSI_14"
+]
+
+app = Flask(__name__)
+
+# -----------------------------
+# LOG REQUESTS (so you can see hits in Railway logs)
+# -----------------------------
+@app.before_request
+def log_request():
     try:
-        return float(x)
+        # Shows if Railway is actually reaching your app
+        print(f"➡️ {request.method} {request.path}")
     except Exception:
-        return default
+        pass
 
-def estimate_prices(base_price_per_kg, direction_up: bool):
-    """
-    Estimate prices for 1g/10g/100g from a base per-kg price.
-    This is just a clean UX helper. Replace if you have exact logic.
-    """
-    # If base_price_per_kg is INR per kg:
-    price_1g = base_price_per_kg / 1000.0
-    price_10g = price_1g * 10
-    price_100g = price_1g * 100
-
-    # Add tiny adjustment based on direction for UI feel
-    tweak = 0.006 if direction_up else -0.006
-    price_1g *= (1 + tweak)
-    price_10g *= (1 + tweak)
-    price_100g *= (1 + tweak)
-
-    return {
-        "1g": round(price_1g, 2),
-        "10g": round(price_10g, 2),
-        "100g": round(price_100g, 2),
-    }
-
-def make_trend_series(hours=48, start_value=98.0):
-    """
-    Create a smooth-ish trend line for the chart (demo).
-    Replace with your real data source if you have it.
-    """
-    now = datetime.utcnow()
-    labels = []
-    values = []
-    v = start_value
-
-    for i in range(hours):
-        t = now - timedelta(hours=(hours - 1 - i))
-        labels.append(t.strftime("%H:%M"))
-        # gentle random walk
-        v += random.uniform(-1.4, 1.2)
-        v = max(70, min(120, v))
-        values.append(round(v, 2))
-
-    return labels, values
 
 # -----------------------------
-# Pages
+# LOAD MODEL ONCE (fast + stable)
 # -----------------------------
-@app.route("/")
-def index():
-    return render_template("index.html")
+def load_model():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    model_path = os.path.join(base_dir, MODEL_FILE)
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"❌ Model file not found: {model_path}")
+    with open(model_path, "rb") as f:
+        return pickle.load(f)
 
-@app.route("/about")
-def about():
-    return render_template("about.html")
+try:
+    model = load_model()
+    print("✅ Model loaded successfully")
+except Exception as e:
+    model = None
+    print("❌ Model load failed:", str(e))
+    print(traceback.format_exc())
 
-@app.route("/reviews", methods=["GET"])
-def reviews():
-    return render_template("reviews.html")
 
 # -----------------------------
-# APIs
+# ROUTES
 # -----------------------------
-@app.route("/api/trend", methods=["GET"])
-def api_trend():
-    labels, values = make_trend_series(hours=48, start_value=105.0)
-    return jsonify({"labels": labels, "values": values})
+@app.get("/health")
+def health():
+    # Railway routing/healthcheck test
+    return "ok", 200
 
-@app.route("/predict", methods=["POST"])
+
+@app.get("/")
+def home():
+    """
+    Keep this route super light.
+    If template missing, still return a plain message (no hang).
+    """
+    try:
+        return render_template(TEMPLATE_NAME)
+    except Exception as e:
+        print("⚠️ Template render failed:", str(e))
+        return "App is running ✅ (template missing or error)", 200
+
+
+# -----------------------------
+# HELPERS
+# -----------------------------
+def safe_predict(X: np.ndarray) -> float:
+    if model is None:
+        raise RuntimeError("Model is not loaded. Check model file name/path.")
+    pred = model.predict(X)
+    return float(np.ravel(pred)[0])
+
+
+def build_X_from_payload(payload: dict) -> np.ndarray:
+    """
+    Supports:
+      - payload["features"] = [....]
+      - payload["features_dict"] = { "Open":..., ... }
+    """
+    if "features_dict" in payload and payload["features_dict"] is not None:
+        fd = payload["features_dict"]
+        if not isinstance(fd, dict):
+            raise ValueError("features_dict must be an object")
+
+        row = []
+        for col in FEATURE_COLS:
+            if col not in fd:
+                raise ValueError(f"Missing feature '{col}' in features_dict")
+            row.append(float(fd[col]))
+
+        X = np.array(row, dtype=float).reshape(1, -1)
+
+    elif "features" in payload and payload["features"] is not None:
+        fl = payload["features"]
+        if not isinstance(fl, list):
+            raise ValueError("features must be an array")
+
+        X = np.array(fl, dtype=float)
+        if X.ndim == 1:
+            X = X.reshape(1, -1)
+
+    else:
+        raise ValueError("Send 'features' (array) OR 'features_dict' (object).")
+
+    if X.shape[1] != len(FEATURE_COLS):
+        raise ValueError(f"Feature count mismatch. Expected {len(FEATURE_COLS)} got {X.shape[1]}")
+
+    if not np.isfinite(X).all():
+        raise ValueError("Features contain NaN/inf.")
+
+    return X
+
+
+def compute_next_day_X(last_rows: list) -> np.ndarray:
+    """
+    Builds next-day features safely from history rows.
+    last_rows: list of dict rows (from frontend)
+    """
+    if not last_rows or not isinstance(last_rows, list):
+        raise ValueError("last_rows is missing or invalid")
+
+    df = pd.DataFrame(last_rows)
+    if df.empty:
+        raise ValueError("History dataframe is empty")
+
+    # Ensure numeric base columns if present
+    for c in ["Open", "High", "Low", "Close", "Volume"]:
+        if c in df.columns:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
+
+    # Compute indicators ONLY if your feature list requires them
+    if "Close" in df.columns:
+        close = pd.to_numeric(df["Close"], errors="coerce")
+
+        if "MA_7" in FEATURE_COLS:
+            df["MA_7"] = close.rolling(7, min_periods=1).mean()
+
+        if "MA_14" in FEATURE_COLS:
+            df["MA_14"] = close.rolling(14, min_periods=1).mean()
+
+        if "RSI_14" in FEATURE_COLS:
+            delta = close.diff()
+            gain = delta.clip(lower=0).rolling(14, min_periods=1).mean()
+            loss = (-delta.clip(upper=0)).rolling(14, min_periods=1).mean()
+            rs = gain / loss.replace(0, np.nan)
+            rsi = 100 - (100 / (1 + rs))
+            df["RSI_14"] = rsi.fillna(50)
+
+    missing = [c for c in FEATURE_COLS if c not in df.columns]
+    if missing:
+        raise ValueError(f"Missing required columns for next-day: {missing}")
+
+    last = df.iloc[-1][FEATURE_COLS]
+    X_next = np.array(last, dtype=float).reshape(1, -1)
+    X_next = np.nan_to_num(X_next, nan=0.0, posinf=0.0, neginf=0.0)
+
+    if not np.isfinite(X_next).all():
+        raise ValueError("Next-day features still contain NaN/inf after cleaning.")
+
+    return X_next
+
+
+# -----------------------------
+# API: Predict Today
+# -----------------------------
+@app.post("/predict")
 def predict():
-    """
-    Expects JSON:
-    {
-      "state": "Gujarat",
-      "purity": "999",
-      "horizon": "Next Hour"
-    }
-    """
     try:
-        data = request.get_json(force=True) or {}
-
-        state = (data.get("state") or "").strip()
-        purity = (data.get("purity") or "").strip()
-        horizon = (data.get("horizon") or "").strip()
-
-        if not state or not purity or not horizon:
-            return jsonify({
-                "ok": False,
-                "error": "Please select State/UT, Purity, and Horizon."
-            }), 400
-
-        # -----------------------------
-        # Replace this block with your real ML model logic
-        # -----------------------------
-        # Demo: create a deterministic-ish decision from inputs
-        key = f"{state}|{purity}|{horizon}".lower()
-        score = sum(ord(c) for c in key) % 100
-        direction_up = score >= 50
-        confidence = 0.60 + (abs(score - 50) / 100.0) * 0.35  # 0.60 -> 0.95
-        confidence = round(min(0.95, max(0.55, confidence)), 2)
-
-        # Demo: base price INR/kg-ish
-        base_price_per_kg = 85000 + (score * 120)  # 85k..97k
-        prices = estimate_prices(base_price_per_kg, direction_up)
-
+        payload = request.get_json(silent=True) or {}
+        X = build_X_from_payload(payload)
+        pred_value = safe_predict(X)
+        return jsonify({"success": True, "prediction": pred_value})
+    except Exception as e:
+        print("❌ /predict error:", str(e))
+        print(traceback.format_exc())
         return jsonify({
-            "ok": True,
-            "direction": "UP" if direction_up else "DOWN",
-            "confidence": confidence,
-            "prices": prices,
-            "meta": {
-                "state": state,
-                "purity": purity,
-                "horizon": horizon
-            }
-        })
-    except Exception:
-        # IMPORTANT: don’t show error banner on initial load
-        return jsonify({
-            "ok": False,
-            "error": "Something went wrong while calculating prediction. Please try again."
+            "success": False,
+            "message": "Something went wrong while calculating prediction. Please try again.",
+            "debug_error": str(e)
         }), 500
 
 
+# -----------------------------
+# API: Predict Next Day
+# -----------------------------
+@app.post("/predict-next-day")
+def predict_next_day():
+    try:
+        payload = request.get_json(silent=True) or {}
+
+        if "last_rows" in payload and payload["last_rows"]:
+            X_next = compute_next_day_X(payload["last_rows"])
+        else:
+            # Fallback: if frontend doesn't send history, use direct features
+            X_next = build_X_from_payload(payload)
+
+        pred_value = safe_predict(X_next)
+        tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+
+        return jsonify({"success": True, "date": tomorrow, "prediction": pred_value})
+
+    except Exception as e:
+        print("❌ /predict-next-day error:", str(e))
+        print(traceback.format_exc())
+        return jsonify({
+            "success": False,
+            "message": "Something went wrong while calculating prediction. Please try again.",
+            "debug_error": str(e)
+        }), 500
+
+
+# -----------------------------
+# LOCAL RUN
+# -----------------------------
 if __name__ == "__main__":
-    # Railway uses PORT env variable
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    port = int(os.environ.get("PORT", "5000"))
+    app.run(host="0.0.0.0", port=port, debug=True)
