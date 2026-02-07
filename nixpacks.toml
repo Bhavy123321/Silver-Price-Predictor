@@ -1,13 +1,20 @@
+# ==============================
+# Railway Nixpacks configuration
+# ==============================
+
 [phases.setup]
+# Force stable Python version (avoids pandas build crash)
 nixPkgs = ["python311"]
 
 [phases.install]
 cmds = [
-  "python -m venv /app/.venv",
-  ". /app/.venv/bin/activate",
+  # Upgrade pip first (important)
   "pip install --upgrade pip setuptools wheel",
+
+  # Install project dependencies
   "pip install -r requirements.txt"
 ]
 
 [phases.start]
-cmd = ". /app/.venv/bin/activate && gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120"
+# Start Flask app using gunicorn
+cmd = "gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120"
