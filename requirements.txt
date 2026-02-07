@@ -1,5 +1,7 @@
-Flask==3.0.3
-gunicorn==24.1.1
-numpy==1.26.4
-pandas==2.1.4
-scikit-learn==1.4.2
+flask==3.0.3
+gunicorn==25.0.1
+pandas
+numpy
+joblib
+yfinance
+scikit-learn==1.7.2
