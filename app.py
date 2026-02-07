@@ -1,143 +1,122 @@
-from flask import Flask, render_template, request, jsonify
 import os
-import math
+import traceback
 from datetime import datetime, timedelta
-import random
 
-app = Flask(__name__, template_folder="templates", static_folder="static")
+import numpy as np
+from flask import Flask, render_template, request, jsonify
 
-# -----------------------------
-# Helpers (simple demo logic)
-# Replace this with your real ML model prediction
-# -----------------------------
-def safe_float(x, default=None):
-    try:
-        return float(x)
-    except Exception:
-        return default
+from model_utils import load_or_create_demo_model, FEATURE_NAMES
 
-def estimate_prices(base_price_per_kg, direction_up: bool):
-    """
-    Estimate prices for 1g/10g/100g from a base per-kg price.
-    This is just a clean UX helper. Replace if you have exact logic.
-    """
-    # If base_price_per_kg is INR per kg:
-    price_1g = base_price_per_kg / 1000.0
-    price_10g = price_1g * 10
-    price_100g = price_1g * 100
+app = Flask(__name__)
 
-    # Add tiny adjustment based on direction for UI feel
-    tweak = 0.006 if direction_up else -0.006
-    price_1g *= (1 + tweak)
-    price_10g *= (1 + tweak)
-    price_100g *= (1 + tweak)
+# Load model safely (works on Railway too)
+model = load_or_create_demo_model()
 
-    return {
-        "1g": round(price_1g, 2),
-        "10g": round(price_10g, 2),
-        "100g": round(price_100g, 2),
-    }
+# Simple in-memory history (kept during runtime)
+# In real apps, store in DB / file
+PREDICTION_HISTORY = []
 
-def make_trend_series(hours=48, start_value=98.0):
-    """
-    Create a smooth-ish trend line for the chart (demo).
-    Replace with your real data source if you have it.
-    """
-    now = datetime.utcnow()
-    labels = []
-    values = []
-    v = start_value
 
-    for i in range(hours):
-        t = now - timedelta(hours=(hours - 1 - i))
-        labels.append(t.strftime("%H:%M"))
-        # gentle random walk
-        v += random.uniform(-1.4, 1.2)
-        v = max(70, min(120, v))
-        values.append(round(v, 2))
+@app.get("/")
+def home():
+    return render_template("index.html", feature_names=FEATURE_NAMES)
 
-    return labels, values
 
-# -----------------------------
-# Pages
-# -----------------------------
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-@app.route("/about")
+@app.get("/about")
 def about():
     return render_template("about.html")
 
-@app.route("/reviews", methods=["GET"])
+
+@app.get("/reviews")
 def reviews():
     return render_template("reviews.html")
 
-# -----------------------------
-# APIs
-# -----------------------------
-@app.route("/api/trend", methods=["GET"])
-def api_trend():
-    labels, values = make_trend_series(hours=48, start_value=105.0)
-    return jsonify({"labels": labels, "values": values})
 
-@app.route("/predict", methods=["POST"])
-def predict():
+@app.post("/api/predict")
+def api_predict():
     """
-    Expects JSON:
-    {
-      "state": "Gujarat",
-      "purity": "999",
-      "horizon": "Next Hour"
-    }
+    Predict based on input features (same-day prediction)
     """
     try:
-        data = request.get_json(force=True) or {}
+        payload = request.get_json(silent=True) or {}
+        features = payload.get("features")
 
-        state = (data.get("state") or "").strip()
-        purity = (data.get("purity") or "").strip()
-        horizon = (data.get("horizon") or "").strip()
+        if features is None:
+            raise ValueError("Missing 'features' in request JSON. Expected: {features: [...]}")
 
-        if not state or not purity or not horizon:
-            return jsonify({
-                "ok": False,
-                "error": "Please select State/UT, Purity, and Horizon."
-            }), 400
+        X = np.array(features, dtype=float)
+        if X.ndim == 1:
+            X = X.reshape(1, -1)
 
-        # -----------------------------
-        # Replace this block with your real ML model logic
-        # -----------------------------
-        # Demo: create a deterministic-ish decision from inputs
-        key = f"{state}|{purity}|{horizon}".lower()
-        score = sum(ord(c) for c in key) % 100
-        direction_up = score >= 50
-        confidence = 0.60 + (abs(score - 50) / 100.0) * 0.35  # 0.60 -> 0.95
-        confidence = round(min(0.95, max(0.55, confidence)), 2)
+        # Validate shape
+        if X.shape[1] != len(FEATURE_NAMES):
+            raise ValueError(f"Feature count mismatch. Expected {len(FEATURE_NAMES)} but got {X.shape[1]}")
 
-        # Demo: base price INR/kg-ish
-        base_price_per_kg = 85000 + (score * 120)  # 85k..97k
-        prices = estimate_prices(base_price_per_kg, direction_up)
+        # Validate values
+        if not np.isfinite(X).all():
+            raise ValueError("features contain NaN/inf. Please fill all inputs correctly.")
 
+        pred = model.predict(X)
+        pred_value = float(pred[0])
+
+        result_label = "Approved ✅" if pred_value == 1.0 else "Rejected ❌"
+
+        record = {
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "features": features,
+            "result": result_label
+        }
+        PREDICTION_HISTORY.append(record)
+        PREDICTION_HISTORY[:] = PREDICTION_HISTORY[-50:]  # keep last 50
+
+        return jsonify({"success": True, "prediction": pred_value, "label": result_label})
+
+    except Exception as e:
+        print("❌ /api/predict failed:", str(e))
+        print(traceback.format_exc())
         return jsonify({
-            "ok": True,
-            "direction": "UP" if direction_up else "DOWN",
-            "confidence": confidence,
-            "prices": prices,
-            "meta": {
-                "state": state,
-                "purity": purity,
-                "horizon": horizon
-            }
-        })
-    except Exception:
-        # IMPORTANT: don’t show error banner on initial load
-        return jsonify({
-            "ok": False,
-            "error": "Something went wrong while calculating prediction. Please try again."
+            "success": False,
+            "message": "Something went wrong while calculating prediction. Please try again.",
+            "debug_error": str(e)  # remove later if you want
         }), 500
 
 
-if __name__ == "__main__":
-    # Railway uses PORT env variable
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+@app.post("/api/predict-next-day")
+def api_predict_next_day():
+    """
+    Next-day prediction:
+    - We simulate "next day" by taking last inputs and applying a small deterministic drift,
+      then predicting again.
+    - The main goal: robust validation + no crashes.
+    """
+    try:
+        payload = request.get_json(silent=True) or {}
+        features = payload.get("features")
+
+        if features is None:
+            raise ValueError("Missing 'features' in request JSON. Expected: {features: [...]}")
+
+        X = np.array(features, dtype=float)
+        if X.ndim == 1:
+            X = X.reshape(1, -1)
+
+        if X.shape[1] != len(FEATURE_NAMES):
+            raise ValueError(f"Feature count mismatch. Expected {len(FEATURE_NAMES)} but got {X.shape[1]}")
+
+        if not np.isfinite(X).all():
+            raise ValueError("features contain NaN/inf. Please fill all inputs correctly.")
+
+        # ---- Next-day feature drift (safe + simple)
+        X_next = X.copy()
+
+        # Example drift:
+        # - Credit score: +/- 1
+        # - DTI: +/- 0.2
+        # - Income: +0.5% (small increase)
+        # - Loan amount: unchanged
+        # - Employment length: unchanged
+        # - Age: unchanged
+        # Adjust indices based on FEATURE_NAMES order in model_utils.py
+        def idx(name): return FEATURE_NAMES.index(name)
+
+        X_next[0, idx("income")] = X_next[0, idx("income")] * 1*
