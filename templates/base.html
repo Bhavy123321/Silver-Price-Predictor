@@ -5,15 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Silver Predictor</title>
 
-  <!-- IMPORTANT: keep this exact filename -->
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ cache_bust }}">
-
-  <!-- Chart.js (if you are using chart) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
-  <!-- Optional background orbs (your CSS already has classes) -->
   <div class="bg-orb orb-1"></div>
   <div class="bg-orb orb-2"></div>
   <div class="bg-orb orb-3"></div>
@@ -28,7 +24,6 @@
     </div>
 
     <nav class="nav">
-      <!-- ✅ Add classes so your CSS applies -->
       <a class="nav-link" href="{{ url_for('index') }}">Dashboard</a>
       <a class="nav-link" href="{{ url_for('about') }}">About</a>
       <a class="nav-link" href="{{ url_for('reviews') }}">Reviews</a>
@@ -37,21 +32,12 @@
       <a class="pill" href="{{ social.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>
 
       <button class="pill pill-toggle" id="themeToggle" type="button">
-        <span class="moon">🌙</span>
-        <span class="toggle-text">Dark</span>
+        <span class="moon">🌙</span><span class="toggle-text">Dark</span>
       </button>
     </nav>
   </header>
 
   <main class="container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="banner banner-error show">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
     {% block content %}{% endblock %}
   </main>
 
