@@ -5,15 +5,41 @@ import pandas as pd
 import sqlite3
 import os
 from datetime import datetime
+import time
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates", static_folder="static", static_url_path="/static")
+
 app.secret_key = "silver-predictor-secret"
 
 # -------------------------
-# SOCIAL LINKS
+# IMPORTANT: CSS/JS not showing fix
+# -------------------------
+# 1) Explicitly set template/static folders (helps on deploy)
+# 2) Bust cache so Railway/browser always loads latest CSS/JS
+app.config["TEMPLATES_AUTO_RELOAD"] = True
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
+
+
+@app.context_processor
+def inject_cache_bust():
+    # Used in base.html: ?v={{ cache_bust }}
+    return {"cache_bust": int(time.time())}
+
+
+@app.after_request
+def add_no_cache_headers(resp):
+    # Avoid caching HTML responses
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
+
+
+# -------------------------
+# YOUR SOCIAL LINKS (edit)
 # -------------------------
 SOCIAL = {
-    "github": "https://github.com/YOUR_GITHUB",
+    "github": "https://github.com/Bhavy123321",
     "linkedin": "https://linkedin.com/in/YOUR_LINKEDIN"
 }
 
@@ -71,6 +97,7 @@ model_1m = joblib.load("models/model_next_month.joblib")
 # -------------------------
 DB_PATH = os.path.join(os.path.dirname(__file__), "reviews.db")
 
+
 def init_db():
     with sqlite3.connect(DB_PATH) as con:
         con.execute("""
@@ -82,13 +109,36 @@ def init_db():
             created_at TEXT
         )
         """)
+
+
 init_db()
+
+
+def add_review(name, rating, message):
+    with sqlite3.connect(DB_PATH) as con:
+        con.execute("""
+            INSERT INTO reviews (name, rating, message, created_at)
+            VALUES (?, ?, ?, ?)
+        """, (name, rating, message, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+
+
+def get_reviews(limit=50):
+    with sqlite3.connect(DB_PATH) as con:
+        rows = con.execute("""
+            SELECT name, rating, message, created_at
+            FROM reviews
+            ORDER BY id DESC
+            LIMIT ?
+        """, (limit,)).fetchall()
+    return rows
+
 
 # -------------------------
 # HELPERS
 # -------------------------
 def usd_oz_to_inr_kg(price_usd_oz, usd_inr):
     return price_usd_oz * usd_inr * (1000 / 31.1035)
+
 
 def fetch_market():
     silver = yf.download("SI=F", period="5d", interval="1d", progress=False)
@@ -99,10 +149,12 @@ def fetch_market():
 
     return float(silver["Close"].iloc[-1]), float(usd["Close"].iloc[-1])
 
+
 def predict(model, X):
     pred = model.predict(X)[0]
     proba = model.predict_proba(X)[0][1]
     return ("UP" if pred == 1 else "DOWN", round(proba * 100, 2))
+
 
 # -------------------------
 # ROUTES
@@ -166,18 +218,40 @@ def index():
         social=SOCIAL
     )
 
+
 @app.route("/about")
 def about():
     return render_template("about.html", social=SOCIAL)
 
-@app.route("/reviews")
-def reviews():
-    with sqlite3.connect(DB_PATH) as con:
-        rows = con.execute("SELECT name, rating, message, created_at FROM reviews ORDER BY id DESC").fetchall()
-    return render_template("reviews.html", reviews=rows, social=SOCIAL)
 
-# -------------------------
-# LOCAL RUN
-# -------------------------
+@app.route("/reviews", methods=["GET", "POST"])
+def reviews():
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        rating = request.form.get("rating", "").strip()
+        message = request.form.get("message", "").strip()
+
+        if not name or not rating or not message:
+            flash("Please fill all fields.", "error")
+            return redirect(url_for("reviews"))
+
+        try:
+            rating_int = int(rating)
+        except:
+            flash("Rating must be a number between 1 and 5.", "error")
+            return redirect(url_for("reviews"))
+
+        if rating_int < 1 or rating_int > 5:
+            flash("Rating must be between 1 and 5.", "error")
+            return redirect(url_for("reviews"))
+
+        add_review(name, rating_int, message)
+        flash("Thanks! Your review has been added.", "success")
+        return redirect(url_for("reviews"))
+
+    all_reviews = get_reviews(limit=60)
+    return render_template("reviews.html", reviews=all_reviews, social=SOCIAL)
+
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(debug=True)
