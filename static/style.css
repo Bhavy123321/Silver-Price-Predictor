@@ -435,3 +435,7 @@ body{
   border: 1px solid rgba(123,97,255,0.28);
 }
 
+/* FIX: chart was blank because canvas height became 0 */
+.card-chart { min-height: 320px; }
+#trendChart { width: 100% !important; height: 240px !important; display:block; }
+
