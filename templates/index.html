@@ -1,8 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- Error banner: hidden by default (IMPORTANT FIX) -->
-<div class="banner banner-error" id="errorBanner" role="alert" aria-live="polite">
+<div class="banner banner-error" id="errorBanner" role="alert">
   <div class="banner-text" id="errorText"></div>
 </div>
 
@@ -11,13 +10,11 @@
     <h1 class="hero-title">Smart Silver Forecast</h1>
     <p class="hero-desc">
       Choose your <b>State/UT</b>, <b>Purity</b> and <b>Horizon</b>. We predict
-      <span class="chip">UP/DOWN</span> with confidence and estimate prices for
-      <b>1g</b> / <b>10g</b> / <b>100g</b>.
+      <span class="chip">UP/DOWN</span> with confidence and estimate prices for <b>1g</b> / <b>10g</b> / <b>100g</b>.
     </p>
 
-    <div class="card card-form" id="formCard">
+    <div class="card card-form">
       <div class="grid-2">
-        <!-- Custom dropdown (smooth) -->
         <div class="field">
           <label>State / UT</label>
           <div class="select" data-select="state">
@@ -25,17 +22,12 @@
               <span class="select-value" data-value>Choose State/UT</span>
               <span class="select-caret">▾</span>
             </button>
-            <div class="select-menu" role="listbox">
-              <input class="select-search" type="text" placeholder="Search state..." aria-label="Search state">
+            <div class="select-menu">
+              <input class="select-search" type="text" placeholder="Search state...">
               <div class="select-options" data-options>
-                <!-- few samples; add all if you want -->
-                <div class="opt" role="option" data-opt="Gujarat">Gujarat</div>
-                <div class="opt" role="option" data-opt="Maharashtra">Maharashtra</div>
-                <div class="opt" role="option" data-opt="Rajasthan">Rajasthan</div>
-                <div class="opt" role="option" data-opt="Delhi">Delhi</div>
-                <div class="opt" role="option" data-opt="Andaman and Nicobar Islands">Andaman and Nicobar Islands</div>
-                <div class="opt" role="option" data-opt="Karnataka">Karnataka</div>
-                <div class="opt" role="option" data-opt="Tamil Nadu">Tamil Nadu</div>
+                {% for s in states %}
+                  <div class="opt" data-opt="{{ s }}">{{ s }}</div>
+                {% endfor %}
               </div>
             </div>
           </div>
@@ -49,15 +41,15 @@
               <span class="select-value" data-value>Next Hour</span>
               <span class="select-caret">▾</span>
             </button>
-            <div class="select-menu" role="listbox">
+            <div class="select-menu">
               <div class="select-options" data-options>
-                <div class="opt" role="option" data-opt="Next Hour">Next Hour</div>
-                <div class="opt" role="option" data-opt="Next Day">Next Day</div>
-                <div class="opt" role="option" data-opt="Next Month">Next Month</div>
+                <div class="opt" data-opt="1h">Next Hour</div>
+                <div class="opt" data-opt="1d">Next Day</div>
+                <div class="opt" data-opt="1m">Next Month</div>
               </div>
             </div>
           </div>
-          <input type="hidden" id="horizonInput" value="Next Hour">
+          <input type="hidden" id="horizonInput" value="1h">
         </div>
       </div>
 
@@ -69,11 +61,12 @@
               <span class="select-value" data-value>999 (Fine Silver)</span>
               <span class="select-caret">▾</span>
             </button>
-            <div class="select-menu" role="listbox">
+            <div class="select-menu">
               <div class="select-options" data-options>
-                <div class="opt" role="option" data-opt="999">999 (Fine Silver)</div>
-                <div class="opt" role="option" data-opt="925">925 (Sterling)</div>
-                <div class="opt" role="option" data-opt="916">916 (Common)</div>
+                <div class="opt" data-opt="999">999 (Fine Silver)</div>
+                <div class="opt" data-opt="925">925 (Sterling)</div>
+                <div class="opt" data-opt="900">900</div>
+                <div class="opt" data-opt="800">800</div>
               </div>
             </div>
           </div>
@@ -95,13 +88,12 @@
 
       <button class="btn btn-primary" id="predictBtn" type="button">
         <span class="btn-text">Run Prediction</span>
-        <span class="btn-spin" aria-hidden="true"></span>
+        <span class="btn-spin"></span>
       </button>
 
       <div class="hint">Tip: Day/Month predictions are usually more stable than Hour predictions.</div>
 
-      <!-- Result panel (hidden until prediction runs) -->
-      <div class="result" id="resultBox" aria-live="polite">
+      <div class="result" id="resultBox">
         <div class="result-head">
           <div class="result-title">Prediction</div>
           <div class="badge" id="dirBadge">—</div>
@@ -116,18 +108,9 @@
         </div>
 
         <div class="prices" id="pricesBox">
-          <div class="price">
-            <div class="muted">1g</div>
-            <div class="value" id="p1g">—</div>
-          </div>
-          <div class="price">
-            <div class="muted">10g</div>
-            <div class="value" id="p10g">—</div>
-          </div>
-          <div class="price">
-            <div class="muted">100g</div>
-            <div class="value" id="p100g">—</div>
-          </div>
+          <div class="price"><div class="muted">1g</div><div class="value" id="p1g">—</div></div>
+          <div class="price"><div class="muted">10g</div><div class="value" id="p10g">—</div></div>
+          <div class="price"><div class="muted">100g</div><div class="value" id="p100g">—</div></div>
         </div>
       </div>
     </div>
@@ -136,15 +119,15 @@
   <div class="hero-right">
     <div class="card card-chart" id="chartCard">
       <div class="card-title">Silver Trend (Last ~48 Hours)</div>
-      <canvas id="trendChart" height="210"></canvas>
-      <div class="chart-note">Source: demo series (replace with your feed if available).</div>
+      <canvas id="trendChart"></canvas>
+      <div class="chart-note">Source: SI=F hourly close values (fallback demo if unavailable).</div>
     </div>
 
     <div class="card card-connect">
       <div class="card-title">Connect with me</div>
       <div class="connect-row">
-        <a class="pill pill-big" href="#" id="githubLink2">🐙 GitHub</a>
-        <a class="pill pill-big" href="#" id="linkedinLink2">💼 LinkedIn</a>
+        <a class="pill pill-big" href="{{ social.github }}" target="_blank" rel="noopener">🐙 GitHub</a>
+        <a class="pill pill-big" href="{{ social.linkedin }}" target="_blank" rel="noopener">💼 LinkedIn</a>
       </div>
     </div>
   </div>
