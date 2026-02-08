@@ -1,3 +1,12 @@
+/* ✅ Fix default purple/underline links everywhere */
+a{
+  color: inherit;
+  text-decoration: none;
+}
+a:visited{
+  color: inherit;
+}
+
 :root{
   --bg: #070A12;
   --bg2: #0A1020;
@@ -425,3 +434,4 @@ body{
   background: rgba(123,97,255,0.20);
   border: 1px solid rgba(123,97,255,0.28);
 }
+
