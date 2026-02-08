@@ -1,55 +1,76 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Silver Predictor</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{{ title if title else "Silver Predictor" }}</title>
+
+    <!-- Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap"
+        rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- ✅ Cache-busted CSS so Railway/browser always loads latest -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ cache_bust }}">
 </head>
 
 <body>
-  <div class="bg-orb orb-1"></div>
-  <div class="bg-orb orb-2"></div>
-  <div class="bg-orb orb-3"></div>
 
-  <header class="topbar">
-    <div class="brand">
-      <div class="logo"></div>
-      <div>
-        <div class="brand-title">Silver Predictor</div>
-        <div class="brand-sub">AI Direction Forecast • Purity • State Premium</div>
-      </div>
-    </div>
+    <header class="topbar">
+        <div class="wrap topbar-inner">
+            <div class="brand">
+                <div class="logo"></div>
+                <div>
+                    <div class="brand-name">Silver Predictor</div>
+                    <div class="brand-sub">AI Direction Forecast • Purity • State Premium</div>
+                </div>
+            </div>
 
-    <nav class="nav">
-      <a class="nav-link" href="/">Dashboard</a>
-      <a class="nav-link" href="/about">About</a>
-      <a class="nav-link" href="/reviews">Reviews</a>
+            <nav class="nav">
+                <a href="{{ url_for('index') }}">Dashboard</a>
+                <a href="{{ url_for('about') }}">About</a>
+                <a href="{{ url_for('reviews') }}">Reviews</a>
+                <a class="pill-btn" href="{{ social.github }}" target="_blank">GitHub</a>
+                <a class="pill-btn" href="{{ social.linkedin }}" target="_blank">LinkedIn</a>
+            </nav>
+        </div>
+    </header>
 
-      <a class="pill" href="#" id="githubLink" aria-label="GitHub">GitHub</a>
-      <a class="pill" href="#" id="linkedinLink" aria-label="LinkedIn">LinkedIn</a>
+    <main class="wrap">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-area fade-in">
+            {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
 
-      <button class="pill pill-toggle" id="themeToggle" type="button" aria-label="Toggle theme">
-        <span class="moon">🌙</span>
-        <span class="toggle-text">Dark</span>
-      </button>
-    </nav>
-  </header>
+        {% block content %}{% endblock %}
+    </main>
 
-  <main class="container">
-    {% block content %}{% endblock %}
-  </main>
+    <footer class="footer">
+        <div class="wrap footer-inner">
+            <div class="muted">© {{ datetime.utcnow().year if datetime else "" }} Silver Predictor • Built with Flask + ML
+            </div>
+            <div class="footer-links">
+                <a href="{{ url_for('index') }}">Dashboard</a>
+                <a href="{{ url_for('about') }}">About</a>
+                <a href="{{ url_for('reviews') }}">Reviews</a>
+                <a href="{{ social.github }}" target="_blank">GitHub</a>
+                <a href="{{ social.linkedin }}" target="_blank">LinkedIn</a>
+            </div>
+        </div>
+    </footer>
 
-  <footer class="footer">
-    <div>© <span id="year"></span> Silver Predictor • Built with Flask + ML</div>
-    <div class="footer-links">
-      <a href="/" class="footer-link">Dashboard</a>
-      <a href="/about" class="footer-link">About</a>
-      <a href="/reviews" class="footer-link">Reviews</a>
-    </div>
-  </footer>
-
-  <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <!-- ✅ Optional JS (also cache-busted) -->
+    <script src="{{ url_for('static', filename='app.js') }}?v={{ cache_bust }}"></script>
 </body>
+
 </html>
