@@ -2,13 +2,13 @@
 {% block content %}
 
 <div class="page-head">
-  <h1 class="page-title">Reviews</h1>
-  <p class="page-sub">Drop feedback — it helps improve the project.</p>
+  <h1>Reviews</h1>
+  <p>Drop feedback — it helps improve the project.</p>
 </div>
 
 <div class="page-grid">
-  <div class="card page-card">
-    <div class="card-title">Write a review</div>
+  <div class="panel">
+    <div class="panel-title">Write a review</div>
 
     <form method="POST" class="form">
       <div class="field">
@@ -32,15 +32,15 @@
         <textarea class="input" name="message" rows="5" placeholder="Write your feedback..." required></textarea>
       </div>
 
-      <button class="btn btn-primary" type="submit">Submit Review</button>
+      <button class="btn-primary" type="submit">Submit Review</button>
     </form>
   </div>
 
-  <div class="card page-card">
-    <div class="card-title">Latest reviews</div>
+  <div class="panel">
+    <div class="panel-title">Latest reviews</div>
 
     {% if reviews %}
-      <div class="reviews">
+      <div class="review-list">
         {% for r in reviews %}
           <div class="review">
             <div class="review-top">
@@ -53,7 +53,10 @@
         {% endfor %}
       </div>
     {% else %}
-      <div class="empty-box">No reviews yet. Be the first 🙂</div>
+      <div class="empty">
+        <div class="empty-title">No reviews yet</div>
+        <div class="empty-text">Be the first 🙂</div>
+      </div>
     {% endif %}
   </div>
 </div>
