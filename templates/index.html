@@ -2,7 +2,6 @@
 {% block content %}
 
 <div class="dash-wrap">
-  <!-- LEFT: Form -->
   <div class="card card-form">
     <div class="card-title">Run Prediction</div>
 
@@ -48,7 +47,6 @@
     </form>
   </div>
 
-  <!-- RIGHT: Result -->
   <div class="card result-card">
     {% if result %}
       <div class="result-top">
@@ -106,8 +104,8 @@
       </div>
 
       <div class="disclaimer">
-        ⚠️ These are AI-based estimates using historical trends and live market data.
-        Treat them as a smart reference — not guaranteed rates.
+        ⚠️ These are AI-based estimates using historical trends and market reference.
+        Treat them as smart reference — not guaranteed rates.
       </div>
     {% else %}
       <div class="empty-box">Run a prediction to see the result card.</div>
