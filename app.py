@@ -34,8 +34,8 @@ def inject_cache_bust():
 # SOCIAL LINKS
 # -------------------------
 SOCIAL = {
-    "github": "https://github.com/YOUR_GITHUB",
-    "linkedin": "https://linkedin.com/in/YOUR_LINKEDIN"
+    "github": "https://github.com/Bhavy123321",
+    "linkedin": "https://www.linkedin.com/in/bhavy-soni-6123a32b0/"
 }
 
 # -------------------------
@@ -433,3 +433,4 @@ def reviews():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
