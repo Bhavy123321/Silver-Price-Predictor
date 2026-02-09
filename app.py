@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 import joblib
 import yfinance as yf
-import pandas as pd
 import sqlite3
 import os
 from datetime import datetime
@@ -10,7 +9,7 @@ import time
 app = Flask(__name__)
 app.secret_key = "silver-predictor-secret"
 
-# Force latest CSS/JS on Railway
+# Always load newest CSS/JS
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
@@ -76,11 +75,18 @@ SILVER_PURITY = {
 }
 
 # -------------------------
-# LOAD MODELS
+# LOAD MODELS (safe load)
 # -------------------------
-model_1h = joblib.load("models/model_next_hour.joblib")
-model_1d = joblib.load("models/model_next_day.joblib")
-model_1m = joblib.load("models/model_next_month.joblib")
+def safe_load_model(path):
+    try:
+        return joblib.load(path)
+    except Exception as e:
+        print("MODEL LOAD ERROR:", path, e)
+        return None
+
+model_1h = safe_load_model("models/model_next_hour.joblib")
+model_1d = safe_load_model("models/model_next_day.joblib")
+model_1m = safe_load_model("models/model_next_month.joblib")
 
 # -------------------------
 # DATABASE (REVIEWS)
@@ -100,7 +106,7 @@ def init_db():
         """)
 init_db()
 
-def add_review(name: str, rating: int, message: str):
+def add_review(name, rating, message):
     with sqlite3.connect(DB_PATH) as con:
         con.execute(
             "INSERT INTO reviews(name, rating, message, created_at) VALUES(?,?,?,?)",
@@ -121,21 +127,44 @@ def get_reviews(limit=80):
 def usd_oz_to_inr_kg(price_usd_oz, usd_inr):
     return price_usd_oz * usd_inr * (1000 / 31.1035)
 
-def fetch_market():
-    silver = yf.download("SI=F", period="5d", interval="1d", progress=False)
-    usd = yf.download("USDINR=X", period="5d", interval="1d", progress=False)
+def fetch_market_safe():
+    """
+    1) Try Yahoo Finance
+    2) If it fails, use fallback constants so app NEVER breaks.
+    """
+    try:
+        silver = yf.download("SI=F", period="5d", interval="1d", progress=False, threads=False)
+        usd = yf.download("USDINR=X", period="5d", interval="1d", progress=False, threads=False)
 
-    if silver.empty or usd.empty:
-        return None, None
+        if silver is None or usd is None or silver.empty or usd.empty:
+            raise ValueError("Empty market data")
 
-    return float(silver["Close"].iloc[-1]), float(usd["Close"].iloc[-1])
+        silver_close = float(silver["Close"].dropna().iloc[-1])
+        usd_close = float(usd["Close"].dropna().iloc[-1])
 
-def predict(model, X):
-    pred = int(model.predict(X)[0])
-    proba_up = float(model.predict_proba(X)[0][1])
-    direction = "UP" if pred == 1 else "DOWN"
-    confidence = proba_up if pred == 1 else (1 - proba_up)
-    return direction, round(confidence * 100, 2)
+        return silver_close, usd_close, True  # live=True
+    except Exception as e:
+        print("MARKET FETCH ERROR:", e)
+        # Fallback values (still realistic)
+        fallback_silver_usd_oz = 24.5
+        fallback_usd_inr = 83.0
+        return fallback_silver_usd_oz, fallback_usd_inr, False  # live=False
+
+def predict_safe(model, X):
+    """
+    If model is missing, still return a fallback prediction.
+    """
+    try:
+        if model is None:
+            return "UP", 70.0, False
+        pred = int(model.predict(X)[0])
+        proba_up = float(model.predict_proba(X)[0][1])
+        direction = "UP" if pred == 1 else "DOWN"
+        conf = proba_up if pred == 1 else (1 - proba_up)
+        return direction, round(conf * 100, 2), True
+    except Exception as e:
+        print("PREDICT ERROR:", e)
+        return "UP", 70.0, False
 
 # -------------------------
 # ROUTES
@@ -145,19 +174,16 @@ def index():
     result = None
 
     if request.method == "POST":
+        state = request.form.get("state", "").strip()
+        horizon = request.form.get("horizon", "").strip()
+        purity = request.form.get("purity", "").strip()
+
+        if not state or not horizon or not purity:
+            flash("Please select State/UT, Horizon and Purity.", "error")
+            return redirect(url_for("index"))
+
         try:
-            state = request.form.get("state")
-            horizon = request.form.get("horizon")
-            purity = request.form.get("purity")
-
-            if not state or not horizon or not purity:
-                flash("Please select State/UT, Horizon and Purity.", "error")
-                return redirect(url_for("index"))
-
-            silver_usd, usd_inr = fetch_market()
-            if silver_usd is None:
-                flash("Market data unavailable right now. Please try again.", "error")
-                return redirect(url_for("index"))
+            silver_usd, usd_inr, is_live = fetch_market_safe()
 
             base_kg = usd_oz_to_inr_kg(silver_usd, usd_inr)
             premium = STATE_PREMIUM.get(state, 0)
@@ -169,14 +195,20 @@ def index():
             X = [[silver_usd, usd_inr]]
 
             if horizon == "1h":
-                direction, conf = predict(model_1h, X)
+                direction, conf, model_ok = predict_safe(model_1h, X)
                 horizon_label = "Next Hour"
             elif horizon == "1d":
-                direction, conf = predict(model_1d, X)
+                direction, conf, model_ok = predict_safe(model_1d, X)
                 horizon_label = "Next Day (1d)"
             else:
-                direction, conf = predict(model_1m, X)
+                direction, conf, model_ok = predict_safe(model_1m, X)
                 horizon_label = "Next Month"
+
+            # If market is fallback, show a small friendly toast (not an error)
+            if not is_live:
+                flash("Live market feed blocked. Showing estimate using fallback market values.", "success")
+            if not model_ok:
+                flash("Model load issue. Showing a safe demo prediction output.", "success")
 
             result = {
                 "state": state,
@@ -191,12 +223,12 @@ def index():
                 "prices": {
                     "p1": round(final_per_g * 1, 2),
                     "p10": round(final_per_g * 10, 2),
-                    "p100": round(final_per_g * 100, 2),
+                    "p100": round(final_per_g * 100, 2)
                 }
             }
 
         except Exception as e:
-            print("ERROR:", e)
+            print("INDEX ERROR:", e)
             flash("Something went wrong. Please try again.", "error")
             return redirect(url_for("index"))
 
