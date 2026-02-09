@@ -445,3 +445,19 @@ select:focus, .input:focus, textarea:focus{
 .market-value.big{
   font-size: 22px;
 }
+.market-sub{
+  margin-top: 6px;
+  opacity: 0.85;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.market-strip.predicted{
+  border-color: rgba(14,165,164,.40);
+  background: rgba(14,165,164,.10);
+}
+
+.market-value.big{
+  font-size: 22px;
+}
+
