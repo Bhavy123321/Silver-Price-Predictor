@@ -2,22 +2,40 @@
 {% block content %}
 
 <section class="page">
-  <h2 class="page-title">About</h2>
-  <div class="card page-card">
-    <p>
-      <b>Silver Predictor</b> is a small ML + Flask project that predicts the short-term
-      direction of silver price movement (UP/DOWN) based on selected inputs like
-      <b>State/UT</b>, <b>Purity</b>, and <b>Horizon</b>.
-    </p>
-    <p class="muted">
-      Note: This is an experimental educational project. Predictions are not financial advice.
-    </p>
+  <div class="page-head">
+    <h1 class="h1">About</h1>
+    <p class="lead">A clean ML demo that predicts silver direction using market feeds + trained models.</p>
+  </div>
 
-    <div class="stack">
-      <div class="stack-item"><b>Backend:</b> Flask (Python)</div>
-      <div class="stack-item"><b>UI:</b> Dark analytics dashboard</div>
-      <div class="stack-item"><b>Charts:</b> Chart.js</div>
-      <div class="stack-item"><b>Hosting:</b> Railway</div>
+  <div class="grid2-page">
+    <div class="card">
+      <div class="card-title">How it works</div>
+      <ul class="bullets">
+        <li>Fetches market data from yfinance (SI=F and USDINR)</li>
+        <li>Builds features (lags/returns/time)</li>
+        <li>Uses trained ML models to predict UP/DOWN + confidence</li>
+        <li>Estimates price based on State premium and Purity factor</li>
+      </ul>
+      <div class="note" style="margin-top:12px;">
+        ⚠️ This is an educational project, not financial advice.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Connect</div>
+      <div class="actions">
+        <a class="action" href="{{ social.github }}" target="_blank" rel="noopener">🐙 GitHub</a>
+        <a class="action" href="{{ social.linkedin }}" target="_blank" rel="noopener">💼 LinkedIn</a>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="card-sub">Want upgrades?</div>
+      <ul class="bullets">
+        <li>Real Indian silver rate feed integration</li>
+        <li>Better smoothing and forecasting models</li>
+        <li>Export results to PDF / Excel</li>
+      </ul>
     </div>
   </div>
 </section>
