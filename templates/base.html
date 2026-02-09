@@ -3,29 +3,26 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>{{ title if title else "Silver Predictor" }}</title>
+  <title>Silver Predictor</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ cache_bust }}">
 </head>
 
 <body>
   <div class="bg">
-    <div class="orb orb-a"></div>
-    <div class="orb orb-b"></div>
-    <div class="grid"></div>
+    <div class="orb a"></div>
+    <div class="orb b"></div>
   </div>
 
   <header class="topbar">
-    <div class="container topbar-inner">
+    <div class="wrap topbar-inner">
       <a class="brand" href="{{ url_for('index') }}">
         <div class="logo"></div>
-        <div class="brand-text">
+        <div>
           <div class="brand-title">Silver Predictor</div>
           <div class="brand-sub">AI Direction Forecast • Purity • State Premium</div>
         </div>
@@ -35,21 +32,18 @@
         <a class="nav-link" href="{{ url_for('index') }}">Dashboard</a>
         <a class="nav-link" href="{{ url_for('about') }}">About</a>
         <a class="nav-link" href="{{ url_for('reviews') }}">Reviews</a>
-
         <a class="pill" href="{{ social.github }}" target="_blank" rel="noopener">GitHub</a>
         <a class="pill" href="{{ social.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>
       </nav>
     </div>
   </header>
 
-  <main class="container">
+  <main class="wrap">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
-        <div class="toast-wrap">
-          {% for category, message in messages %}
-            <div class="toast {{ category }}">{{ message }}</div>
-          {% endfor %}
-        </div>
+        {% for cat, msg in messages %}
+          <div class="toast {{ cat }}">{{ msg }}</div>
+        {% endfor %}
       {% endif %}
     {% endwith %}
 
@@ -57,17 +51,8 @@
   </main>
 
   <footer class="footer">
-    <div class="container footer-inner">
-      <div class="footer-left">
-        <div class="footer-title">Silver Predictor</div>
-        <div class="footer-sub">Educational ML Project • Not guaranteed financial advice</div>
-      </div>
-      <div class="footer-links">
-        <a href="{{ url_for('about') }}">About</a>
-        <a href="{{ url_for('reviews') }}">Reviews</a>
-        <a href="{{ social.github }}" target="_blank" rel="noopener">GitHub</a>
-        <a href="{{ social.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>
-      </div>
+    <div class="wrap footer-inner">
+      <div class="muted">© Silver Predictor • Built with Flask + ML</div>
     </div>
   </footer>
 </body>
