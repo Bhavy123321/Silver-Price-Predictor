@@ -1,60 +1,118 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Silver Predictor</title>
+{% extends "base.html" %}
+{% block content %}
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&display=swap" rel="stylesheet">
+<div class="dash-wrap">
+  <!-- LEFT: Form -->
+  <div class="card card-form">
+    <div class="card-title">Run Prediction</div>
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ cache_bust }}">
-</head>
+    <form method="POST" class="form">
+      <div class="dash-2">
+        <div class="field">
+          <label>State / UT</label>
+          <select name="state" required>
+            {% for s in states %}
+              <option value="{{ s }}">{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
 
-<body class="app-shell">
-  <!-- Background orbs -->
-  <div class="bg-orb orb-1"></div>
-  <div class="bg-orb orb-2"></div>
-  <div class="bg-orb orb-3"></div>
-
-  <header class="topbar">
-    <div class="container topbar-inner">
-      <div class="brand">
-        <div class="logo"></div>
-        <div>
-          <div class="brand-title">Silver Predictor</div>
-          <div class="brand-sub">AI Direction Forecast • Purity • State Premium</div>
+        <div class="field">
+          <label>Horizon</label>
+          <select name="horizon" required>
+            <option value="1h">Next Hour</option>
+            <option value="1d">Next Day (1d)</option>
+            <option value="1m">Next Month</option>
+          </select>
         </div>
       </div>
 
-      <nav class="nav">
-        <a class="nav-link" href="{{ url_for('index') }}">Dashboard</a>
-        <a class="nav-link" href="{{ url_for('about') }}">About</a>
-        <a class="nav-link" href="{{ url_for('reviews') }}">Reviews</a>
-        <a class="pill" href="{{ social.github }}" target="_blank" rel="noopener">GitHub</a>
-        <a class="pill" href="{{ social.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>
-      </nav>
-    </div>
-  </header>
+      <div class="dash-2">
+        <div class="field">
+          <label>Purity</label>
+          <select name="purity" required>
+            <option value="999">999</option>
+            <option value="925">925</option>
+            <option value="900">900</option>
+            <option value="800">800</option>
+          </select>
+        </div>
 
-  <main class="container main">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for cat, msg in messages %}
-          <div class="toast {{ cat }}">{{ msg }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+        <div class="field">
+          <label class="ghost">.</label>
+          <button class="btn btn-primary" type="submit">Run Prediction</button>
+        </div>
+      </div>
 
-    <!-- IMPORTANT: This block MUST match child templates -->
-    {% block content %}{% endblock %}
-  </main>
+      <div class="hint">Tip: Day/Month predictions are usually more stable than Hour predictions.</div>
+    </form>
+  </div>
 
-  <footer class="footer">
-    <div class="container footer-inner">
-      <div>© Silver Predictor • Built with Flask + ML</div>
-    </div>
-  </footer>
-</body>
-</html>
+  <!-- RIGHT: Result -->
+  <div class="card result-card">
+    {% if result %}
+      <div class="result-top">
+        <div>
+          <div class="kicker">PREDICTION RESULT</div>
+          <div class="result-big">{{ result.direction }} • {{ result.confidence }}% confidence</div>
+          <div class="result-meta">{{ result.horizon }} • {{ result.state }} • Purity {{ result.purity }}</div>
+        </div>
+
+        <div class="dir-pill {{ 'up' if result.direction=='UP' else 'down' }}">
+          {{ result.direction }}
+        </div>
+      </div>
+
+      <div class="market-strip">
+        <div class="market-k">CURRENT SILVER PRICE (MARKET REFERENCE)</div>
+        <div class="market-v">
+          ₹{{ result.base_per_g }} /g &nbsp; • &nbsp; ₹{{ result.base_inr_kg }} /kg
+        </div>
+      </div>
+
+      <div class="stats3">
+        <div class="stat">
+          <div class="stat-k">BASE (INR/KG)</div>
+          <div class="stat-v">₹{{ result.base_inr_kg }}</div>
+          <div class="stat-sub">Market INR/kg (converted)</div>
+        </div>
+
+        <div class="stat">
+          <div class="stat-k">PREMIUM (₹/KG)</div>
+          <div class="stat-v">₹{{ result.premium_per_kg }}</div>
+          <div class="stat-sub">State/wholesale premium</div>
+        </div>
+
+        <div class="stat stat-green">
+          <div class="stat-k">FINAL RATE (₹/G)</div>
+          <div class="stat-v">₹{{ result.final_per_g }}</div>
+          <div class="stat-sub">(Base + Premium) per gram</div>
+        </div>
+      </div>
+
+      <div class="amount-row">
+        <div class="amount-item">
+          <span class="amount-pill">1g amount</span>
+          <span class="amount-val">₹{{ result.prices.p1 }}</span>
+        </div>
+        <div class="amount-item">
+          <span class="amount-pill">10g amount</span>
+          <span class="amount-val">₹{{ result.prices.p10 }}</span>
+        </div>
+        <div class="amount-item">
+          <span class="amount-pill">100g amount</span>
+          <span class="amount-val">₹{{ result.prices.p100 }}</span>
+        </div>
+      </div>
+
+      <div class="disclaimer">
+        ⚠️ These are AI-based estimates using historical trends and live market data.
+        Treat them as a smart reference — not guaranteed rates.
+      </div>
+    {% else %}
+      <div class="empty-box">Run a prediction to see the result card.</div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
