@@ -1,43 +1,40 @@
 {% extends "base.html" %}
 {% block content %}
 
-<section class="page">
-  <div class="page-head">
-    <h1 class="h1">About</h1>
-    <p class="lead">A clean ML demo that predicts silver direction using market feeds + trained models.</p>
-  </div>
+<div class="page-head">
+  <h1 class="page-title">About</h1>
+  <p class="page-sub">This project predicts silver direction (UP/DOWN) using ML models and live market reference data.</p>
+</div>
 
-  <div class="grid2-page">
-    <div class="card">
-      <div class="card-title">How it works</div>
-      <ul class="bullets">
-        <li>Fetches market data from yfinance (SI=F and USDINR)</li>
-        <li>Builds features (lags/returns/time)</li>
-        <li>Uses trained ML models to predict UP/DOWN + confidence</li>
-        <li>Estimates price based on State premium and Purity factor</li>
-      </ul>
-      <div class="note" style="margin-top:12px;">
-        ⚠️ This is an educational project, not financial advice.
-      </div>
-    </div>
+<div class="grid page-grid">
+  <div class="card page-card">
+    <div class="card-title">How it works</div>
+    <ul class="list">
+      <li>Fetches market reference: SI=F (silver futures) + USDINR</li>
+      <li>Converts USD/oz → INR/kg</li>
+      <li>Applies state premium + purity factor</li>
+      <li>ML models estimate direction and confidence</li>
+    </ul>
 
-    <div class="card">
-      <div class="card-title">Connect</div>
-      <div class="actions">
-        <a class="action" href="{{ social.github }}" target="_blank" rel="noopener">🐙 GitHub</a>
-        <a class="action" href="{{ social.linkedin }}" target="_blank" rel="noopener">💼 LinkedIn</a>
-      </div>
-
-      <div class="divider"></div>
-
-      <div class="card-sub">Want upgrades?</div>
-      <ul class="bullets">
-        <li>Real Indian silver rate feed integration</li>
-        <li>Better smoothing and forecasting models</li>
-        <li>Export results to PDF / Excel</li>
-      </ul>
+    <div class="note">
+      ⚠️ This is an educational project. Not guaranteed for real trading decisions.
     </div>
   </div>
-</section>
+
+  <div class="card page-card">
+    <div class="card-title">Connect</div>
+    <div class="connect-row">
+      <a class="pill pill-big" href="{{ social.github }}" target="_blank" rel="noopener">🐙 GitHub</a>
+      <a class="pill pill-big" href="{{ social.linkedin }}" target="_blank" rel="noopener">💼 LinkedIn</a>
+    </div>
+
+    <div class="card-title" style="margin-top:16px;">Future improvements</div>
+    <ul class="list">
+      <li>Better India spot-rate integration</li>
+      <li>Smoother chart + more horizon options</li>
+      <li>Export results as PDF</li>
+    </ul>
+  </div>
+</div>
 
 {% endblock %}
