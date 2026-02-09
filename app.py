@@ -4,10 +4,10 @@ import yfinance as yf
 import sqlite3
 import os
 from datetime import datetime, timedelta
-import time
 import json
 import math
 import random
+import time
 
 app = Flask(__name__)
 app.secret_key = "silver-predictor-secret"
@@ -19,6 +19,15 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "reviews.db")
 CACHE_PATH = os.path.join(BASE_DIR, "market_cache.json")
 MODELS_DIR = os.path.join(BASE_DIR, "models")
+
+
+# -------------------------
+# Add cache-busting for static files (CSS/JS)
+# -------------------------
+@app.context_processor
+def inject_cache_bust():
+    # Changes each server boot; enough to force refresh on deploy
+    return {"cache_bust": int(time.time())}
 
 
 # -------------------------
@@ -120,7 +129,7 @@ model_1m = safe_load_model("model_next_month.joblib")
 
 
 # -------------------------
-# MARKET CACHE (most usable)
+# MARKET CACHE
 # -------------------------
 def read_market_cache():
     try:
@@ -146,7 +155,6 @@ def write_market_cache(silver_usd_oz, usd_inr):
 
 def parse_saved_at(saved_at):
     try:
-        # saved_at like 2026-02-09T08:00:00Z
         return datetime.fromisoformat(saved_at.replace("Z", "+00:00"))
     except:
         return None
@@ -156,14 +164,14 @@ def parse_saved_at(saved_at):
 # HELPERS
 # -------------------------
 def usd_oz_to_inr_kg(price_usd_oz, usd_inr):
+    # 1 troy ounce = 31.1035g, 1kg=1000g
     return price_usd_oz * usd_inr * (1000 / 31.1035)
 
 def fetch_market_best():
     """
-    BEST PRACTICE:
-    1) Try LIVE Yahoo
+    1) Try LIVE Yahoo (yfinance)
     2) If failed -> use LAST SUCCESSFUL cached value (accurate enough)
-    3) If no cache -> use conservative fallback constants (last resort)
+    3) If no cache -> use realistic fallback (last resort)
     Returns: silver_usd_oz, usd_inr, source ("live" | "cached" | "fallback")
     """
     # 1) live
@@ -187,14 +195,21 @@ def fetch_market_best():
     cache = read_market_cache()
     if cache:
         saved_at = parse_saved_at(cache.get("saved_at", ""))
-        # allow cached up to 7 days (still better than random fallback)
         if saved_at:
+            # allow cached up to 14 days
             age = datetime.now(saved_at.tzinfo) - saved_at
-            if age <= timedelta(days=7):
-                return float(cache["silver_usd_oz"]), float(cache["usd_inr"]), "cached"
+            if age <= timedelta(days=14):
+                try:
+                    return float(cache["silver_usd_oz"]), float(cache["usd_inr"]), "cached"
+                except:
+                    pass
 
-    # 3) fallback (last resort)
-    return 24.5, 83.0, "fallback"
+    # 3) fallback (last resort) — REALISTIC
+    # Your expectation: ~₹265,000/kg.
+    # If silver is ~₹265/g, then INR/oz ≈ 265 * 31.1035 ≈ 8242 INR/oz.
+    # USD/oz ≈ 8242 / 83 ≈ 99.3 USD/oz
+    # This keeps fallback close to real-world INR/kg.
+    return 99.3, 83.0, "fallback"
 
 
 def predict_safe(model, X):
@@ -217,7 +232,7 @@ def predict_safe(model, X):
 def calc_daily_volatility_inrkg():
     """
     Daily volatility from 30-day INR/kg series.
-    If Yahoo fails -> use safe default.
+    If Yahoo fails -> safe default.
     """
     try:
         silver = yf.download("SI=F", period="1mo", interval="1d", progress=False, threads=False)
@@ -299,7 +314,6 @@ def api_trend():
 
     except Exception as e:
         print("API TREND ERROR:", e)
-        # fallback based on latest available market (cached if possible)
         silver_usd, usd_inr, src = fetch_market_best()
         base = usd_oz_to_inr_kg(silver_usd, usd_inr)
         labels = [(datetime.now().date() - timedelta(days=i)).strftime("%d %b") for i in range(29, -1, -1)]
@@ -333,7 +347,7 @@ def index():
         premium = STATE_PREMIUM.get(state, 0)
         purity_factor = SILVER_PURITY.get(purity, 1.0)
 
-        # Current reference (user payable reference)
+        # Current reference (State premium + purity)
         current_per_g = ((base_kg + premium) / 1000.0) * purity_factor
         current_per_kg = (base_kg + premium) * purity_factor
 
@@ -356,16 +370,12 @@ def index():
         predicted_per_g = current_per_g * (1.0 + move_pct)
         predicted_per_kg = current_per_kg * (1.0 + move_pct)
 
-        # No scary “blocked” banners anymore.
-        # If you still want to show it subtly, we show SOURCE text on the card.
-
         result = {
             "state": state,
             "horizon": horizon_label,
             "purity": purity,
             "direction": direction,
             "confidence": conf,
-
             "market_source": market_source,  # live/cached/fallback
 
             "current_per_g": round(current_per_g, 2),
