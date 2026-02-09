@@ -7,15 +7,13 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ cache_bust }}">
 </head>
-<body class="app-shell">
 
-  <div class="bg-orb orb-1"></div>
-  <div class="bg-orb orb-2"></div>
-  <div class="bg-orb orb-3"></div>
+<body class="app-shell">
+  <div class="bg"></div>
 
   <header class="topbar">
     <div class="container topbar-inner">
@@ -31,8 +29,8 @@
         <a class="nav-link" href="{{ url_for('index') }}">Dashboard</a>
         <a class="nav-link" href="{{ url_for('about') }}">About</a>
         <a class="nav-link" href="{{ url_for('reviews') }}">Reviews</a>
-        <a class="pill" href="{{ social.github }}" target="_blank" rel="noopener">GitHub</a>
-        <a class="pill" href="{{ social.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>
+        <a class="btn-chip" href="{{ social.github }}" target="_blank" rel="noopener">GitHub</a>
+        <a class="btn-chip" href="{{ social.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>
       </nav>
     </div>
   </header>
@@ -51,7 +49,9 @@
 
   <footer class="footer">
     <div class="container footer-inner">
-      © Silver Predictor • Built with Flask + ML
+      <span>© Silver Predictor</span>
+      <span class="dot">•</span>
+      <span>Built with Flask + ML</span>
     </div>
   </footer>
 </body>
