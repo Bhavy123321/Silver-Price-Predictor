@@ -2,35 +2,60 @@
 {% block content %}
 
 <section class="page">
-  <h2 class="page-title">Reviews</h2>
-
-  <div class="grid-reviews">
-    <div class="card review">
-      <div class="review-head">
-        <div class="avatar">A</div>
-        <div>
-          <div class="review-name">Anonymous</div>
-          <div class="review-meta muted">UI feedback</div>
-        </div>
-      </div>
-      <p class="review-text">Clean dashboard look. Prediction box feels professional.</p>
-    </div>
-
-    <div class="card review">
-      <div class="review-head">
-        <div class="avatar">B</div>
-        <div>
-          <div class="review-name">Beta User</div>
-          <div class="review-meta muted">Feature request</div>
-        </div>
-      </div>
-      <p class="review-text">Would love to see more historical trend options and confidence explanation.</p>
-    </div>
+  <div class="page-head">
+    <h1 class="h1">Reviews</h1>
+    <p class="lead">Drop feedback — it helps improve the project.</p>
   </div>
 
-  <div class="card page-card">
-    <h3 class="mini-title">Add your review</h3>
-    <p class="muted">In your version, you can store reviews in DB or a file. This page is ready for that integration.</p>
+  <div class="grid2-page">
+    <div class="card">
+      <div class="card-title">Write a review</div>
+      <form method="POST" class="form">
+        <div class="field">
+          <label>Your Name</label>
+          <input class="text" type="text" name="name" placeholder="Your name" required>
+        </div>
+
+        <div class="field">
+          <label>Rating</label>
+          <select name="rating" required>
+            <option value="5">★★★★★ (5)</option>
+            <option value="4">★★★★☆ (4)</option>
+            <option value="3">★★★☆☆ (3)</option>
+            <option value="2">★★☆☆☆ (2)</option>
+            <option value="1">★☆☆☆☆ (1)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Message</label>
+          <textarea class="text" name="message" rows="5" placeholder="Write your feedback..." required></textarea>
+        </div>
+
+        <button class="btn" type="submit">Submit Review</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Latest reviews</div>
+
+      {% if reviews %}
+        <div class="reviews">
+          {% for r in reviews %}
+            <div class="review">
+              <div class="review-top">
+                <div class="review-name">{{ r[0] }}</div>
+                <div class="review-rating">{{ "★" * r[1] }}{{ "☆" * (5 - r[1]) }}</div>
+              </div>
+              <div class="review-msg">{{ r[2] }}</div>
+              <div class="review-date">{{ r[3] }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty">No reviews yet. Be the first 🙂</div>
+      {% endif %}
+    </div>
   </div>
 </section>
 
