@@ -6,12 +6,12 @@
     <h1>Smart Silver Forecast</h1>
     <p>
       Choose your <b>State/UT</b>, <b>Purity</b> and <b>Horizon</b>.
-      We show an AI direction with confidence + estimated prices for 1g / 10g / 100g.
+      We show AI direction with confidence + estimated prices for 1g / 10g / 100g.
     </p>
     <div class="hero-badges">
-      <span class="badge">India • State Premium</span>
-      <span class="badge">Purity Adjusted</span>
-      <span class="badge">ML Direction</span>
+      <span class="badge">30-day Trend</span>
+      <span class="badge">State Premium</span>
+      <span class="badge">Confidence</span>
     </div>
   </div>
 
@@ -70,9 +70,38 @@
         </div>
       </div>
     </form>
+
+    <!-- Small charts (always visible) -->
+    <div class="panel-sep"></div>
+
+    <div class="panel-title" style="margin-bottom:8px;">Quick Insights</div>
+
+    <div class="chart-card">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">Silver Trend (Last 30 days)</div>
+          <div class="chart-sub" id="trendSub">Loading…</div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="trendChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card" style="margin-top:12px;">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">Top State Premiums (₹/kg)</div>
+          <div class="chart-sub">Helps understand why price differs by state.</div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="premiumChart"></canvas>
+      </div>
+    </div>
   </div>
 
-  <!-- RIGHT: RESULT CARD -->
+  <!-- RIGHT: RESULT CARD + charts -->
   <div class="panel result">
     {% if result %}
       <div class="result-top">
@@ -131,17 +160,191 @@
         </div>
       </div>
 
+      <!-- Result charts -->
+      <div class="panel-sep"></div>
+
+      <div class="result-charts">
+        <div class="chart-card">
+          <div class="chart-head">
+            <div>
+              <div class="chart-title">Confidence Gauge</div>
+              <div class="chart-sub">Higher = model more sure about direction.</div>
+            </div>
+          </div>
+          <div class="chart-wrap small">
+            <canvas id="confidenceChart"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-head">
+            <div>
+              <div class="chart-title">Price Breakdown</div>
+              <div class="chart-sub">Compare 1g vs 10g vs 100g quickly.</div>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="priceChart"></canvas>
+          </div>
+        </div>
+      </div>
+
       <div class="warn">
         ⚠️ These are AI-based estimates using historical trends and market reference.
         Treat them as smart reference — not guaranteed rates.
       </div>
+
+      <!-- Hidden data for JS -->
+      <div id="resultData"
+           data-confidence="{{ result.confidence }}"
+           data-p1="{{ result.prices.p1 }}"
+           data-p10="{{ result.prices.p10 }}"
+           data-p100="{{ result.prices.p100 }}">
+      </div>
+
     {% else %}
       <div class="empty">
         <div class="empty-title">No result yet</div>
-        <div class="empty-text">Run a prediction to see a premium result card here.</div>
+        <div class="empty-text">Run a prediction to see the result card + confidence charts here.</div>
       </div>
     {% endif %}
   </div>
 </div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+  // Premium chart data from server
+  const premLabels = {{ prem_labels|tojson }};
+  const premValues = {{ prem_values|tojson }};
+
+  let trendChart, premiumChart, confidenceChart, priceChart;
+
+  function formatINR(x){
+    try { return "₹" + Number(x).toLocaleString("en-IN"); } catch { return "₹" + x; }
+  }
+
+  async function loadTrend(){
+    const sub = document.getElementById("trendSub");
+    try{
+      const res = await fetch("/api/trend");
+      const out = await res.json();
+      if(!out.ok) throw new Error("trend failed");
+
+      sub.textContent = out.live ? "Live Yahoo reference (₹/kg)" : "Fallback demo series (₹/kg)";
+
+      const ctx = document.getElementById("trendChart").getContext("2d");
+      trendChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: out.labels,
+          datasets: [{
+            label: "₹/kg",
+            data: out.values,
+            tension: 0.35,
+            borderWidth: 2,
+            pointRadius: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              ticks: {
+                callback: (v)=> formatINR(v)
+              }
+            }
+          }
+        }
+      });
+    }catch(e){
+      sub.textContent = "Could not load trend.";
+    }
+  }
+
+  function loadPremiumChart(){
+    const ctx = document.getElementById("premiumChart").getContext("2d");
+    premiumChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: premLabels,
+        datasets: [{
+          label: "Premium (₹/kg)",
+          data: premValues,
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { ticks: { callback: (v)=> "₹" + v } }
+        }
+      }
+    });
+  }
+
+  function loadResultCharts(){
+    const el = document.getElementById("resultData");
+    if(!el) return;
+
+    const conf = Number(el.dataset.confidence || 0); // 0-100
+    const p1 = Number(el.dataset.p1 || 0);
+    const p10 = Number(el.dataset.p10 || 0);
+    const p100 = Number(el.dataset.p100 || 0);
+
+    // Confidence gauge
+    const cctx = document.getElementById("confidenceChart")?.getContext("2d");
+    if(cctx){
+      confidenceChart = new Chart(cctx, {
+        type: "doughnut",
+        data: {
+          labels: ["Confidence", "Remaining"],
+          datasets: [{
+            data: [conf, Math.max(0, 100-conf)],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          cutout: "70%",
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    // Price breakdown bar
+    const pctx = document.getElementById("priceChart")?.getContext("2d");
+    if(pctx){
+      priceChart = new Chart(pctx, {
+        type: "bar",
+        data: {
+          labels: ["1g", "10g", "100g"],
+          datasets: [{
+            label: "Price (₹)",
+            data: [p1, p10, p100],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { ticks: { callback: (v)=> formatINR(v) } }
+          }
+        }
+      });
+    }
+  }
+
+  // init
+  loadTrend();
+  loadPremiumChart();
+  loadResultCharts();
+</script>
 
 {% endblock %}
