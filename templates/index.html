@@ -1,136 +1,220 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="banner banner-error" id="errorBanner" role="alert">
-  <div class="banner-text" id="errorText"></div>
-</div>
-
 <section class="hero">
-  <div class="hero-left">
-    <h1 class="hero-title">Smart Silver Forecast</h1>
-    <p class="hero-desc">
-      Choose your <b>State/UT</b>, <b>Purity</b> and <b>Horizon</b>. We predict
-      <span class="chip">UP/DOWN</span> with confidence and estimate prices for <b>1g</b> / <b>10g</b> / <b>100g</b>.
-    </p>
+  <div class="hero-head">
+    <div>
+      <h1 class="h1">Smart Silver Forecast</h1>
+      <p class="lead">
+        Select <b>State/UT</b>, <b>Purity</b> and <b>Horizon</b>.
+        Get <span class="chip">UP / DOWN</span> with confidence + estimated prices.
+      </p>
+    </div>
 
-    <div class="card card-form">
-      <div class="grid-2">
-        <div class="field">
-          <label>State / UT</label>
-          <div class="select" data-select="state">
-            <button class="select-btn" type="button">
-              <span class="select-value" data-value>Choose State/UT</span>
-              <span class="select-caret">▾</span>
-            </button>
-            <div class="select-menu">
-              <input class="select-search" type="text" placeholder="Search state...">
-              <div class="select-options" data-options>
-                {% for s in states %}
-                  <div class="opt" data-opt="{{ s }}">{{ s }}</div>
-                {% endfor %}
-              </div>
-            </div>
-          </div>
-          <input type="hidden" id="stateInput" value="">
-        </div>
-
-        <div class="field">
-          <label>Horizon</label>
-          <div class="select" data-select="horizon">
-            <button class="select-btn" type="button">
-              <span class="select-value" data-value>Next Hour</span>
-              <span class="select-caret">▾</span>
-            </button>
-            <div class="select-menu">
-              <div class="select-options" data-options>
-                <div class="opt" data-opt="1h">Next Hour</div>
-                <div class="opt" data-opt="1d">Next Day</div>
-                <div class="opt" data-opt="1m">Next Month</div>
-              </div>
-            </div>
-          </div>
-          <input type="hidden" id="horizonInput" value="1h">
-        </div>
+    <div class="hero-metrics">
+      <div class="mini-card">
+        <div class="mini-label">Coverage</div>
+        <div class="mini-value">{{ states|length }} States/UT</div>
       </div>
-
-      <div class="grid-2">
-        <div class="field">
-          <label>Silver Purity</label>
-          <div class="select" data-select="purity">
-            <button class="select-btn" type="button">
-              <span class="select-value" data-value>999 (Fine Silver)</span>
-              <span class="select-caret">▾</span>
-            </button>
-            <div class="select-menu">
-              <div class="select-options" data-options>
-                <div class="opt" data-opt="999">999 (Fine Silver)</div>
-                <div class="opt" data-opt="925">925 (Sterling)</div>
-                <div class="opt" data-opt="900">900</div>
-                <div class="opt" data-opt="800">800</div>
-              </div>
-            </div>
-          </div>
-          <input type="hidden" id="purityInput" value="999">
-        </div>
-
-        <div class="field checks">
-          <label class="ghost">Options</label>
-          <label class="check">
-            <input type="checkbox" checked id="showTrend">
-            <span>Trend chart</span>
-          </label>
-          <label class="check">
-            <input type="checkbox" checked id="showPrices">
-            <span>Estimated prices (1g/10g/100g)</span>
-          </label>
-        </div>
-      </div>
-
-      <button class="btn btn-primary" id="predictBtn" type="button">
-        <span class="btn-text">Run Prediction</span>
-        <span class="btn-spin"></span>
-      </button>
-
-      <div class="hint">Tip: Day/Month predictions are usually more stable than Hour predictions.</div>
-
-      <div class="result" id="resultBox">
-        <div class="result-head">
-          <div class="result-title">Prediction</div>
-          <div class="badge" id="dirBadge">—</div>
-        </div>
-
-        <div class="result-row">
-          <div class="muted">Confidence</div>
-          <div class="confidence">
-            <div class="bar"><div class="fill" id="confFill"></div></div>
-            <div class="confText" id="confText">—</div>
-          </div>
-        </div>
-
-        <div class="prices" id="pricesBox">
-          <div class="price"><div class="muted">1g</div><div class="value" id="p1g">—</div></div>
-          <div class="price"><div class="muted">10g</div><div class="value" id="p10g">—</div></div>
-          <div class="price"><div class="muted">100g</div><div class="value" id="p100g">—</div></div>
-        </div>
+      <div class="mini-card">
+        <div class="mini-label">Models</div>
+        <div class="mini-value">1H • 1D • 1M</div>
       </div>
     </div>
   </div>
 
-  <div class="hero-right">
-    <div class="card card-chart" id="chartCard">
-      <div class="card-title">Silver Trend (Last ~48 Hours)</div>
-      <canvas id="trendChart"></canvas>
-      <div class="chart-note">Source: SI=F hourly close values (fallback demo if unavailable).</div>
+  <div class="layout">
+    <!-- LEFT -->
+    <div class="panel">
+      <div class="card">
+        <div class="card-title">Prediction Inputs</div>
+        <div class="card-sub">Fast, clean and simple — no broken custom dropdowns.</div>
+
+        <form method="POST" class="form">
+          <div class="row2">
+            <div class="field">
+              <label>State / UT</label>
+              <select name="state" required>
+                {% for s in states %}
+                  <option value="{{ s }}">{{ s }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Horizon</label>
+              <select name="horizon" required>
+                <option value="1h">Next Hour</option>
+                <option value="1d">Next Day (24h)</option>
+                <option value="1m">Next Month (approx)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label>Silver Purity</label>
+              <select name="purity" required>
+                <option value="999">999 (Fine Silver)</option>
+                <option value="925">925 (Sterling)</option>
+                <option value="900">900</option>
+                <option value="800">800</option>
+              </select>
+            </div>
+
+            <div class="info-box">
+              <div class="info-title">What you get</div>
+              <ul class="info-list">
+                <li>Direction + Confidence</li>
+                <li>Trend chart (last ~48 hours)</li>
+                <li>Estimated prices for 1g / 10g / 100g</li>
+              </ul>
+            </div>
+          </div>
+
+          <button class="btn" type="submit">Run Prediction</button>
+          <div class="hint">Tip: Day/Month is usually more stable than Hour predictions.</div>
+        </form>
+      </div>
+
+      {% if result %}
+      <div class="card" style="margin-top:16px;">
+        <div class="card-title">Result</div>
+        <div class="result-head">
+          <div>
+            <div class="result-line">
+              <span class="badge {{ 'up' if result['direction']=='UP' else 'down' }}">
+                {{ "UP" if result['direction']=='UP' else "DOWN" }}
+              </span>
+              <span class="result-main">{{ result["confidence"] }}% confidence</span>
+            </div>
+            <div class="muted">
+              {{ result["horizon"] }} • {{ result["state"] }} • Purity {{ result["purity"] }}
+            </div>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-k">Base (INR/kg)</div>
+            <div class="stat-v">₹{{ result["base_inr_kg"] }}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-k">State Premium (₹/kg)</div>
+            <div class="stat-v">₹{{ result["premium_per_kg"] }}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-k">Final (₹/g)</div>
+            <div class="stat-v">₹{{ result["prices"]["per_g"] }}</div>
+          </div>
+        </div>
+
+        <div class="prices">
+          <div class="price">
+            <div class="price-k">1 gram</div>
+            <div class="price-v">₹{{ result["prices"]["p1"] }}</div>
+          </div>
+          <div class="price">
+            <div class="price-k">10 grams</div>
+            <div class="price-v">₹{{ result["prices"]["p10"] }}</div>
+          </div>
+          <div class="price">
+            <div class="price-k">100 grams</div>
+            <div class="price-v">₹{{ result["prices"]["p100"] }}</div>
+          </div>
+        </div>
+
+        <div class="note">
+          ⚠️ This is an <b>AI-based reference</b> using historical patterns + market feeds.
+          It is <b>not guaranteed</b>.
+        </div>
+      </div>
+      {% endif %}
     </div>
 
-    <div class="card card-connect">
-      <div class="card-title">Connect with me</div>
-      <div class="connect-row">
-        <a class="pill pill-big" href="{{ social.github }}" target="_blank" rel="noopener">🐙 GitHub</a>
-        <a class="pill pill-big" href="{{ social.linkedin }}" target="_blank" rel="noopener">💼 LinkedIn</a>
+    <!-- RIGHT -->
+    <div class="side">
+      <div class="card">
+        <div class="card-title">Silver Trend</div>
+        <div class="card-sub">Last ~48 hours (hourly close).</div>
+
+        {% if labels and values %}
+          <div class="chart-wrap">
+            <canvas id="priceChart"></canvas>
+          </div>
+        {% else %}
+          <div class="empty">
+            Trend data not available right now (yfinance). Try again later.
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <div class="card-title">Confidence</div>
+        <div class="card-sub">UP vs DOWN probability</div>
+
+        {% if result %}
+          <div class="chart-wrap small">
+            <canvas id="confChart"></canvas>
+          </div>
+        {% else %}
+          <div class="empty">Run a prediction to see confidence chart.</div>
+        {% endif %}
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <div class="card-title">Connect</div>
+        <div class="actions">
+          <a class="action" href="{{ social.github }}" target="_blank" rel="noopener">🐙 GitHub</a>
+          <a class="action" href="{{ social.linkedin }}" target="_blank" rel="noopener">💼 LinkedIn</a>
+        </div>
       </div>
     </div>
   </div>
 </section>
+
+<!-- Chart Data -->
+<script id="priceLabels" type="application/json">{{ labels|default([])|tojson }}</script>
+<script id="priceValues" type="application/json">{{ values|default([])|tojson }}</script>
+{% if result %}
+<script id="upProb" type="application/json">{{ result.get('proba_up', 50)|tojson }}</script>
+{% endif %}
+
+<script>
+  const labels = JSON.parse(document.getElementById("priceLabels").textContent || "[]");
+  const values = JSON.parse(document.getElementById("priceValues").textContent || "[]");
+
+  const priceCanvas = document.getElementById("priceChart");
+  if (priceCanvas && labels.length && values.length) {
+    new Chart(priceCanvas, {
+      type: "line",
+      data: { labels, datasets: [{ data: values, tension: 0.35, borderWidth: 2, pointRadius: 0 }] },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { ticks: { maxTicksLimit: 7 } }, y: { ticks: { maxTicksLimit: 6 } } }
+      }
+    });
+  }
+
+  const confCanvas = document.getElementById("confChart");
+  const upProbEl = document.getElementById("upProb");
+  if (confCanvas && upProbEl) {
+    const upProb = JSON.parse(upProbEl.textContent || "50");
+    const downProb = 100 - upProb;
+
+    new Chart(confCanvas, {
+      type: "doughnut",
+      data: { labels: ["UP", "DOWN"], datasets: [{ data: [upProb, downProb], borderWidth: 0 }] },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: "72%",
+        plugins: { legend: { position: "bottom" } }
+      }
+    });
+  }
+</script>
 
 {% endblock %}
