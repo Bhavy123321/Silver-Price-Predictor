@@ -3,14 +3,14 @@ import joblib
 import yfinance as yf
 import sqlite3
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import random
+import math
 
 app = Flask(__name__)
 app.secret_key = "silver-predictor-secret"
 
-# Always load newest CSS/JS
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
@@ -25,17 +25,11 @@ def add_no_cache_headers(resp):
     resp.headers["Expires"] = "0"
     return resp
 
-# -------------------------
-# SOCIAL LINKS
-# -------------------------
 SOCIAL = {
     "github": "https://github.com/YOUR_GITHUB",
     "linkedin": "https://linkedin.com/in/YOUR_LINKEDIN"
 }
 
-# -------------------------
-# STATE PREMIUMS (₹/kg)
-# -------------------------
 STATE_PREMIUM = {
     "Andaman and Nicobar Islands": 650,
     "Andhra Pradesh": 700,
@@ -65,9 +59,6 @@ STATE_PREMIUM = {
     "West Bengal": 650
 }
 
-# -------------------------
-# SILVER PURITY FACTOR
-# -------------------------
 SILVER_PURITY = {
     "999": 1.0,
     "925": 0.925,
@@ -75,9 +66,6 @@ SILVER_PURITY = {
     "800": 0.8
 }
 
-# -------------------------
-# LOAD MODELS (safe load)
-# -------------------------
 def safe_load_model(path):
     try:
         return joblib.load(path)
@@ -89,9 +77,6 @@ model_1h = safe_load_model("models/model_next_hour.joblib")
 model_1d = safe_load_model("models/model_next_day.joblib")
 model_1m = safe_load_model("models/model_next_month.joblib")
 
-# -------------------------
-# DATABASE (REVIEWS)
-# -------------------------
 DB_PATH = os.path.join(os.path.dirname(__file__), "reviews.db")
 
 def init_db():
@@ -122,17 +107,11 @@ def get_reviews(limit=80):
         ).fetchall()
     return rows
 
-# -------------------------
-# HELPERS
-# -------------------------
+# ---------- Helpers ----------
 def usd_oz_to_inr_kg(price_usd_oz, usd_inr):
     return price_usd_oz * usd_inr * (1000 / 31.1035)
 
 def fetch_market_safe():
-    """
-    1) Try Yahoo Finance
-    2) If it fails, use fallback constants so app NEVER breaks.
-    """
     try:
         silver = yf.download("SI=F", period="5d", interval="1d", progress=False, threads=False)
         usd = yf.download("USDINR=X", period="5d", interval="1d", progress=False, threads=False)
@@ -142,18 +121,12 @@ def fetch_market_safe():
 
         silver_close = float(silver["Close"].dropna().iloc[-1])
         usd_close = float(usd["Close"].dropna().iloc[-1])
-
-        return silver_close, usd_close, True  # live=True
+        return silver_close, usd_close, True
     except Exception as e:
         print("MARKET FETCH ERROR:", e)
-        fallback_silver_usd_oz = 24.5
-        fallback_usd_inr = 83.0
-        return fallback_silver_usd_oz, fallback_usd_inr, False
+        return 24.5, 83.0, False
 
 def predict_safe(model, X):
-    """
-    If model is missing, still return a fallback prediction.
-    """
     try:
         if model is None:
             return "UP", 70.0, False
@@ -166,34 +139,78 @@ def predict_safe(model, X):
         print("PREDICT ERROR:", e)
         return "UP", 70.0, False
 
-def make_fallback_series(days=30, base=250000.0):
-    """Creates a smooth demo line (₹/kg) so chart never stays blank."""
-    vals = []
-    cur = base
-    for _ in range(days):
-        cur += random.uniform(-2500, 2500)  # gentle move
-        vals.append(round(cur, 2))
-    return vals
+def calc_daily_volatility_inrkg():
+    """
+    Computes daily volatility from last 30 days INR/kg series.
+    If Yahoo fails, returns a safe default.
+    """
+    try:
+        silver = yf.download("SI=F", period="1mo", interval="1d", progress=False, threads=False)
+        usd = yf.download("USDINR=X", period="1mo", interval="1d", progress=False, threads=False)
+        if silver is None or usd is None or silver.empty or usd.empty:
+            raise ValueError("Empty data")
+        silver = silver[["Close"]].dropna()
+        usd = usd[["Close"]].dropna()
+        joined = silver.join(usd, how="inner", lsuffix="_silver", rsuffix="_usd").dropna()
+        values = []
+        for _, row in joined.iterrows():
+            inrkg = usd_oz_to_inr_kg(float(row["Close_silver"]), float(row["Close_usd"]))
+            values.append(inrkg)
 
-# -------------------------
-# API: Trend for chart (₹/kg)
-# -------------------------
+        if len(values) < 8:
+            raise ValueError("Not enough points")
+
+        # returns
+        rets = []
+        for i in range(1, len(values)):
+            rets.append((values[i] - values[i-1]) / values[i-1])
+
+        # std dev
+        mean = sum(rets) / len(rets)
+        var = sum((r - mean) ** 2 for r in rets) / (len(rets) - 1)
+        return math.sqrt(var)
+    except Exception as e:
+        print("VOL ERROR:", e)
+        return 0.012  # ~1.2% daily fallback
+
+def estimate_move_pct(horizon_key, confidence_pct, direction):
+    """
+    Converts confidence + volatility into an expected move percent.
+    Caps moves so result stays realistic and user-friendly.
+    """
+    daily_vol = calc_daily_volatility_inrkg()
+    conf = max(0.0, min(100.0, float(confidence_pct))) / 100.0
+
+    # Scale volatility by horizon
+    if horizon_key == "1h":
+        vol = daily_vol / math.sqrt(24)   # approx hour
+        cap = 0.05                        # 5% max
+    elif horizon_key == "1d":
+        vol = daily_vol * 1.0
+        cap = 0.12                        # 12% max
+    else:
+        vol = daily_vol * math.sqrt(30)   # monthly-ish
+        cap = 0.25                        # 25% max
+
+    # Use confidence to scale impact (more confidence -> stronger move)
+    raw = conf * vol * 2.2  # factor to make it noticeable but not crazy
+    move = max(-cap, min(cap, raw))
+
+    sign = 1 if direction == "UP" else -1
+    return sign * move
+
+# ---------- API Trend (₹/kg) ----------
 @app.route("/api/trend")
 def api_trend():
     try:
-        # 30-day daily series
         silver = yf.download("SI=F", period="1mo", interval="1d", progress=False, threads=False)
         usd = yf.download("USDINR=X", period="1mo", interval="1d", progress=False, threads=False)
-
         if silver is None or usd is None or silver.empty or usd.empty:
             raise ValueError("Empty market data")
 
         silver = silver[["Close"]].dropna()
         usd = usd[["Close"]].dropna()
-
-        # align by index
-        joined = silver.join(usd, how="inner", lsuffix="_silver", rsuffix="_usd")
-        joined = joined.dropna()
+        joined = silver.join(usd, how="inner", lsuffix="_silver", rsuffix="_usd").dropna()
 
         labels = [idx.strftime("%d %b") for idx in joined.index]
         values = []
@@ -205,24 +222,20 @@ def api_trend():
             raise ValueError("Not enough points")
 
         return jsonify({"ok": True, "labels": labels[-30:], "values": values[-30:], "live": True})
-
     except Exception as e:
         print("API TREND ERROR:", e)
-        # fallback: base from current safe market
+        # fallback demo
         silver_usd, usd_inr, _ = fetch_market_safe()
         base = usd_oz_to_inr_kg(silver_usd, usd_inr)
-        labels = [(datetime.now().date()).strftime("%d %b")]
-        # create labels for last 30 days
-        labels = []
-        for i in range(29, -1, -1):
-            d = datetime.now().date()
-            labels.append((d.replace(day=d.day) - __import__("datetime").timedelta(days=i)).strftime("%d %b"))
-        values = make_fallback_series(30, base=base)
-        return jsonify({"ok": True, "labels": labels, "values": values, "live": False})
+        labels = [(datetime.now().date() - timedelta(days=i)).strftime("%d %b") for i in range(29, -1, -1)]
+        vals = []
+        cur = base
+        for _ in range(30):
+            cur += random.uniform(-2500, 2500)
+            vals.append(round(cur, 2))
+        return jsonify({"ok": True, "labels": labels, "values": vals, "live": False})
 
-# -------------------------
-# ROUTES
-# -------------------------
+# ---------- Routes ----------
 @app.route("/", methods=["GET", "POST"])
 def index():
     result = None
@@ -243,22 +256,30 @@ def index():
             premium = STATE_PREMIUM.get(state, 0)
             purity_factor = SILVER_PURITY.get(purity, 1.0)
 
-            base_per_g = (base_kg / 1000.0) * purity_factor
-            final_per_g = ((base_kg + premium) / 1000.0) * purity_factor
+            # Current price (what user pays now)
+            current_per_g = ((base_kg + premium) / 1000.0) * purity_factor
+            current_per_kg = (base_kg + premium) * purity_factor
 
             X = [[silver_usd, usd_inr]]
-
             if horizon == "1h":
                 direction, conf, model_ok = predict_safe(model_1h, X)
                 horizon_label = "Next Hour"
+                horizon_key = "1h"
             elif horizon == "1d":
                 direction, conf, model_ok = predict_safe(model_1d, X)
                 horizon_label = "Next Day (1d)"
+                horizon_key = "1d"
             else:
                 direction, conf, model_ok = predict_safe(model_1m, X)
                 horizon_label = "Next Month"
+                horizon_key = "1m"
 
-            # Not error — friendly info
+            # Estimate predicted move %
+            move_pct = estimate_move_pct(horizon_key, conf, direction)
+
+            predicted_per_g = current_per_g * (1.0 + move_pct)
+            predicted_per_kg = current_per_kg * (1.0 + move_pct)
+
             if not is_live:
                 flash("Live market feed blocked. Showing estimate using fallback values.", "success")
             if not model_ok:
@@ -270,15 +291,24 @@ def index():
                 "purity": purity,
                 "direction": direction,
                 "confidence": conf,
-                "base_inr_kg": round(base_kg, 2),
-                "premium_per_kg": premium,
-                "base_per_g": round(base_per_g, 2),
-                "final_per_g": round(final_per_g, 2),
+
+                # Current reference
+                "current_per_g": round(current_per_g, 2),
+                "current_per_kg": round(current_per_kg, 2),
+
+                # Predicted price (what you asked)
+                "predicted_per_g": round(predicted_per_g, 2),
+                "predicted_per_kg": round(predicted_per_kg, 2),
+
+                # Amounts based on predicted price
                 "prices": {
-                    "p1": round(final_per_g * 1, 2),
-                    "p10": round(final_per_g * 10, 2),
-                    "p100": round(final_per_g * 100, 2)
-                }
+                    "p1": round(predicted_per_g * 1, 2),
+                    "p10": round(predicted_per_g * 10, 2),
+                    "p100": round(predicted_per_g * 100, 2),
+                },
+
+                # Optional info (not shown in UI unless you want later)
+                "move_pct": round(move_pct * 100, 2),
             }
 
         except Exception as e:
@@ -286,7 +316,6 @@ def index():
             flash("Something went wrong. Please try again.", "error")
             return redirect(url_for("index"))
 
-    # premium chart data (top 8)
     top_prem = sorted(STATE_PREMIUM.items(), key=lambda x: x[1], reverse=True)[:8]
     prem_labels = [k for k, _ in top_prem]
     prem_values = [v for _, v in top_prem]
@@ -315,7 +344,6 @@ def reviews():
             if not name or not message:
                 flash("Please enter your name and message.", "error")
                 return redirect(url_for("reviews"))
-
             if rating < 1 or rating > 5:
                 flash("Rating must be between 1 and 5.", "error")
                 return redirect(url_for("reviews"))
