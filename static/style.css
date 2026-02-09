@@ -430,3 +430,18 @@ select:focus, .input:focus, textarea:focus{
 @media (max-width: 980px){
   .result-charts{ grid-template-columns: 1fr; }
 }
+
+/* Predicted card highlight */
+.market-strip.predicted{
+  border-color: rgba(14,165,164,.40);
+  background: rgba(14,165,164,.10);
+}
+.market-strip .market-sub{
+  margin-top: 6px;
+  color: var(--muted);
+  font-weight: 800;
+  font-size: 12px;
+}
+.market-value.big{
+  font-size: 22px;
+}
