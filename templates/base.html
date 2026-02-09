@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Silver Predictor</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,9 +11,8 @@
 
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ cache_bust }}">
 </head>
-
 <body class="app-shell">
-  <!-- Background orbs -->
+
   <div class="bg-orb orb-1"></div>
   <div class="bg-orb orb-2"></div>
   <div class="bg-orb orb-3"></div>
@@ -47,13 +46,12 @@
       {% endif %}
     {% endwith %}
 
-    <!-- IMPORTANT: This block MUST match child templates -->
     {% block content %}{% endblock %}
   </main>
 
   <footer class="footer">
     <div class="container footer-inner">
-      <div>© Silver Predictor • Built with Flask + ML</div>
+      © Silver Predictor • Built with Flask + ML
     </div>
   </footer>
 </body>
