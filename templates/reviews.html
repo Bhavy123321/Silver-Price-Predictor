@@ -1,62 +1,61 @@
 {% extends "base.html" %}
 {% block content %}
 
-<section class="page">
-  <div class="page-head">
-    <h1 class="h1">Reviews</h1>
-    <p class="lead">Drop feedback — it helps improve the project.</p>
+<div class="page-head">
+  <h1 class="page-title">Reviews</h1>
+  <p class="page-sub">Drop feedback — it helps improve the project.</p>
+</div>
+
+<div class="grid page-grid">
+  <div class="card page-card">
+    <div class="card-title">Write a review</div>
+
+    <form method="POST" class="form">
+      <div class="field">
+        <label>Your Name</label>
+        <input class="input" type="text" name="name" placeholder="Your name" required>
+      </div>
+
+      <div class="field">
+        <label>Rating</label>
+        <select name="rating" required>
+          <option value="5">★★★★★ (5)</option>
+          <option value="4">★★★★☆ (4)</option>
+          <option value="3">★★★☆☆ (3)</option>
+          <option value="2">★★☆☆☆ (2)</option>
+          <option value="1">★☆☆☆☆ (1)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Message</label>
+        <textarea class="input" name="message" rows="5" placeholder="Write your feedback..." required></textarea>
+      </div>
+
+      <button class="btn btn-primary" type="submit">Submit Review</button>
+    </form>
   </div>
 
-  <div class="grid2-page">
-    <div class="card">
-      <div class="card-title">Write a review</div>
-      <form method="POST" class="form">
-        <div class="field">
-          <label>Your Name</label>
-          <input class="text" type="text" name="name" placeholder="Your name" required>
-        </div>
+  <div class="card page-card">
+    <div class="card-title">Latest reviews</div>
 
-        <div class="field">
-          <label>Rating</label>
-          <select name="rating" required>
-            <option value="5">★★★★★ (5)</option>
-            <option value="4">★★★★☆ (4)</option>
-            <option value="3">★★★☆☆ (3)</option>
-            <option value="2">★★☆☆☆ (2)</option>
-            <option value="1">★☆☆☆☆ (1)</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label>Message</label>
-          <textarea class="text" name="message" rows="5" placeholder="Write your feedback..." required></textarea>
-        </div>
-
-        <button class="btn" type="submit">Submit Review</button>
-      </form>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Latest reviews</div>
-
-      {% if reviews %}
-        <div class="reviews">
-          {% for r in reviews %}
-            <div class="review">
-              <div class="review-top">
-                <div class="review-name">{{ r[0] }}</div>
-                <div class="review-rating">{{ "★" * r[1] }}{{ "☆" * (5 - r[1]) }}</div>
-              </div>
-              <div class="review-msg">{{ r[2] }}</div>
-              <div class="review-date">{{ r[3] }}</div>
+    {% if reviews %}
+      <div class="reviews">
+        {% for r in reviews %}
+          <div class="review">
+            <div class="review-top">
+              <div class="review-name">{{ r[0] }}</div>
+              <div class="review-stars">{{ "★"*r[1] }}{{ "☆"*(5-r[1]) }}</div>
             </div>
-          {% endfor %}
-        </div>
-      {% else %}
-        <div class="empty">No reviews yet. Be the first 🙂</div>
-      {% endif %}
-    </div>
+            <div class="review-msg">{{ r[2] }}</div>
+            <div class="review-date">{{ r[3] }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-box">No reviews yet. Be the first 🙂</div>
+    {% endif %}
   </div>
-</section>
+</div>
 
 {% endblock %}
