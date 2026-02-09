@@ -1,12 +1,40 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="dash-wrap">
-  <div class="card card-form">
-    <div class="card-title">Run Prediction</div>
+<section class="hero">
+  <div class="hero-left">
+    <h1>Smart Silver Forecast</h1>
+    <p>
+      Choose your <b>State/UT</b>, <b>Purity</b> and <b>Horizon</b>.
+      We show an AI direction with confidence + estimated prices for 1g / 10g / 100g.
+    </p>
+    <div class="hero-badges">
+      <span class="badge">India • State Premium</span>
+      <span class="badge">Purity Adjusted</span>
+      <span class="badge">ML Direction</span>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="mini-card">
+      <div class="mini-title">Tip</div>
+      <div class="mini-text">Day/Month predictions are usually more stable than Hour predictions.</div>
+    </div>
+  </div>
+</section>
+
+<div class="layout">
+  <!-- LEFT: FORM -->
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">Run Prediction</div>
+        <div class="panel-sub">Fill inputs and press run.</div>
+      </div>
+    </div>
 
     <form method="POST" class="form">
-      <div class="dash-2">
+      <div class="row2">
         <div class="field">
           <label>State / UT</label>
           <select name="state" required>
@@ -15,7 +43,6 @@
             {% endfor %}
           </select>
         </div>
-
         <div class="field">
           <label>Horizon</label>
           <select name="horizon" required>
@@ -26,7 +53,7 @@
         </div>
       </div>
 
-      <div class="dash-2">
+      <div class="row2">
         <div class="field">
           <label>Purity</label>
           <select name="purity" required>
@@ -39,76 +66,80 @@
 
         <div class="field">
           <label class="ghost">.</label>
-          <button class="btn btn-primary" type="submit">Run Prediction</button>
+          <button class="btn-primary" type="submit">Run Prediction</button>
         </div>
       </div>
-
-      <div class="hint">Tip: Day/Month predictions are usually more stable than Hour predictions.</div>
     </form>
   </div>
 
-  <div class="card result-card">
+  <!-- RIGHT: RESULT CARD -->
+  <div class="panel result">
     {% if result %}
       <div class="result-top">
         <div>
-          <div class="kicker">PREDICTION RESULT</div>
-          <div class="result-big">{{ result.direction }} • {{ result.confidence }}% confidence</div>
+          <div class="result-kicker">PREDICTION RESULT</div>
+          <div class="result-big">
+            <span class="dir {{ 'up' if result.direction=='UP' else 'down' }}">{{ result.direction }}</span>
+            <span class="sep">•</span>
+            <span>{{ result.confidence }}% confidence</span>
+          </div>
           <div class="result-meta">{{ result.horizon }} • {{ result.state }} • Purity {{ result.purity }}</div>
         </div>
 
-        <div class="dir-pill {{ 'up' if result.direction=='UP' else 'down' }}">
-          {{ result.direction }}
-        </div>
+        <div class="dir-bubble {{ 'up' if result.direction=='UP' else 'down' }}">{{ result.direction }}</div>
       </div>
 
       <div class="market-strip">
-        <div class="market-k">CURRENT SILVER PRICE (MARKET REFERENCE)</div>
-        <div class="market-v">
-          ₹{{ result.base_per_g }} /g &nbsp; • &nbsp; ₹{{ result.base_inr_kg }} /kg
+        <div class="market-label">CURRENT SILVER PRICE (MARKET REFERENCE)</div>
+        <div class="market-value">
+          ₹{{ result.base_per_g }} /g <span class="dot">•</span> ₹{{ result.base_inr_kg }} /kg
         </div>
       </div>
 
-      <div class="stats3">
+      <div class="grid3">
         <div class="stat">
           <div class="stat-k">BASE (INR/KG)</div>
           <div class="stat-v">₹{{ result.base_inr_kg }}</div>
-          <div class="stat-sub">Market INR/kg (converted)</div>
+          <div class="stat-s">Market INR/kg (converted)</div>
         </div>
 
         <div class="stat">
           <div class="stat-k">PREMIUM (₹/KG)</div>
           <div class="stat-v">₹{{ result.premium_per_kg }}</div>
-          <div class="stat-sub">State/wholesale premium</div>
+          <div class="stat-s">State/wholesale premium</div>
         </div>
 
-        <div class="stat stat-green">
+        <div class="stat accent">
           <div class="stat-k">FINAL RATE (₹/G)</div>
           <div class="stat-v">₹{{ result.final_per_g }}</div>
-          <div class="stat-sub">(Base + Premium) per gram</div>
+          <div class="stat-s">(Base + Premium) per gram</div>
         </div>
       </div>
 
-      <div class="amount-row">
-        <div class="amount-item">
-          <span class="amount-pill">1g amount</span>
-          <span class="amount-val">₹{{ result.prices.p1 }}</span>
+      <div class="amounts">
+        <div class="amt">
+          <span class="pill">1g amount</span>
+          <span class="val">₹{{ result.prices.p1 }}</span>
         </div>
-        <div class="amount-item">
-          <span class="amount-pill">10g amount</span>
-          <span class="amount-val">₹{{ result.prices.p10 }}</span>
+        <div class="amt">
+          <span class="pill">10g amount</span>
+          <span class="val">₹{{ result.prices.p10 }}</span>
         </div>
-        <div class="amount-item">
-          <span class="amount-pill">100g amount</span>
-          <span class="amount-val">₹{{ result.prices.p100 }}</span>
+        <div class="amt">
+          <span class="pill">100g amount</span>
+          <span class="val">₹{{ result.prices.p100 }}</span>
         </div>
       </div>
 
-      <div class="disclaimer">
+      <div class="warn">
         ⚠️ These are AI-based estimates using historical trends and market reference.
         Treat them as smart reference — not guaranteed rates.
       </div>
     {% else %}
-      <div class="empty-box">Run a prediction to see the result card.</div>
+      <div class="empty">
+        <div class="empty-title">No result yet</div>
+        <div class="empty-text">Run a prediction to see a premium result card here.</div>
+      </div>
     {% endif %}
   </div>
 </div>
