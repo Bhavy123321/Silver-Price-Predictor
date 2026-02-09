@@ -10,7 +10,7 @@ import time
 app = Flask(__name__)
 app.secret_key = "silver-predictor-secret"
 
-# ---- always load latest CSS/JS on Railway ----
+# Force latest CSS/JS on Railway
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
@@ -92,13 +92,28 @@ def init_db():
         con.execute("""
         CREATE TABLE IF NOT EXISTS reviews(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            rating INTEGER,
-            message TEXT,
-            created_at TEXT
+            name TEXT NOT NULL,
+            rating INTEGER NOT NULL,
+            message TEXT NOT NULL,
+            created_at TEXT NOT NULL
         )
         """)
 init_db()
+
+def add_review(name: str, rating: int, message: str):
+    with sqlite3.connect(DB_PATH) as con:
+        con.execute(
+            "INSERT INTO reviews(name, rating, message, created_at) VALUES(?,?,?,?)",
+            (name, rating, message, datetime.now().strftime("%Y-%m-%d %H:%M"))
+        )
+
+def get_reviews(limit=80):
+    with sqlite3.connect(DB_PATH) as con:
+        rows = con.execute(
+            "SELECT name, rating, message, created_at FROM reviews ORDER BY id DESC LIMIT ?",
+            (limit,)
+        ).fetchall()
+    return rows
 
 # -------------------------
 # HELPERS
@@ -131,18 +146,22 @@ def index():
 
     if request.method == "POST":
         try:
-            state = request.form["state"]
-            horizon = request.form["horizon"]
-            purity = request.form["purity"]
+            state = request.form.get("state")
+            horizon = request.form.get("horizon")
+            purity = request.form.get("purity")
+
+            if not state or not horizon or not purity:
+                flash("Please select State/UT, Horizon and Purity.", "error")
+                return redirect(url_for("index"))
 
             silver_usd, usd_inr = fetch_market()
             if silver_usd is None:
-                flash("Market data unavailable", "error")
+                flash("Market data unavailable right now. Please try again.", "error")
                 return redirect(url_for("index"))
 
             base_kg = usd_oz_to_inr_kg(silver_usd, usd_inr)
-            premium = STATE_PREMIUM[state]
-            purity_factor = SILVER_PURITY[purity]
+            premium = STATE_PREMIUM.get(state, 0)
+            purity_factor = SILVER_PURITY.get(purity, 1.0)
 
             base_per_g = (base_kg / 1000.0) * purity_factor
             final_per_g = ((base_kg + premium) / 1000.0) * purity_factor
@@ -179,22 +198,40 @@ def index():
         except Exception as e:
             print("ERROR:", e)
             flash("Something went wrong. Please try again.", "error")
+            return redirect(url_for("index"))
 
-    return render_template(
-        "index.html",
-        states=STATE_PREMIUM.keys(),
-        result=result,
-        social=SOCIAL
-    )
+    return render_template("index.html", states=STATE_PREMIUM.keys(), result=result, social=SOCIAL)
 
 @app.route("/about")
 def about():
     return render_template("about.html", social=SOCIAL)
 
-@app.route("/reviews")
+@app.route("/reviews", methods=["GET", "POST"])
 def reviews():
-    with sqlite3.connect(DB_PATH) as con:
-        rows = con.execute("SELECT name, rating, message, created_at FROM reviews ORDER BY id DESC").fetchall()
+    if request.method == "POST":
+        try:
+            name = (request.form.get("name") or "").strip()
+            rating = int(request.form.get("rating") or 5)
+            message = (request.form.get("message") or "").strip()
+
+            if not name or not message:
+                flash("Please enter your name and message.", "error")
+                return redirect(url_for("reviews"))
+
+            if rating < 1 or rating > 5:
+                flash("Rating must be between 1 and 5.", "error")
+                return redirect(url_for("reviews"))
+
+            add_review(name, rating, message)
+            flash("Review submitted successfully!", "success")
+            return redirect(url_for("reviews"))
+
+        except Exception as e:
+            print("REVIEW ERROR:", e)
+            flash("Could not submit review. Please try again.", "error")
+            return redirect(url_for("reviews"))
+
+    rows = get_reviews()
     return render_template("reviews.html", reviews=rows, social=SOCIAL)
 
 if __name__ == "__main__":
