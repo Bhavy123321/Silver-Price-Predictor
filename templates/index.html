@@ -24,7 +24,7 @@
 </section>
 
 <div class="layout">
-  <!-- LEFT: FORM + INSIGHTS -->
+  <!-- LEFT -->
   <div class="panel">
     <div class="panel-head">
       <div>
@@ -99,13 +99,11 @@
         <canvas id="premiumChart"></canvas>
       </div>
     </div>
-
   </div>
 
-  <!-- RIGHT: RESULT -->
+  <!-- RIGHT -->
   <div class="panel result">
     {% if result %}
-
       <div class="result-top">
         <div>
           <div class="result-kicker">PREDICTION RESULT</div>
@@ -120,24 +118,31 @@
         <div class="dir-bubble {{ 'up' if result.direction=='UP' else 'down' }}">{{ result.direction }}</div>
       </div>
 
-      <!-- Current reference -->
       <div class="market-strip">
         <div class="market-label">CURRENT SILVER PRICE (REFERENCE)</div>
         <div class="market-value">
           ₹{{ result.current_per_g }} /g <span class="dot">•</span> ₹{{ result.current_per_kg }} /kg
         </div>
+        <div class="market-sub">
+          Source:
+          {% if result.market_source == 'live' %}
+            Live
+          {% elif result.market_source == 'cached' %}
+            Cached (last successful)
+          {% else %}
+            Fallback
+          {% endif %}
+        </div>
       </div>
 
-      <!-- Predicted price (main) -->
       <div class="market-strip predicted">
         <div class="market-label">PREDICTED SILVER PRICE ({{ result.horizon }})</div>
         <div class="market-value big">
           ₹{{ result.predicted_per_g }} /g <span class="dot">•</span> ₹{{ result.predicted_per_kg }} /kg
         </div>
-        <div class="market-sub">Estimate based on direction + confidence + recent volatility (not guaranteed).</div>
+        <div class="market-sub">Estimate based on direction + confidence + recent volatility.</div>
       </div>
 
-      <!-- Predicted amounts -->
       <div class="amounts">
         <div class="amt">
           <span class="pill">1g amount</span>
@@ -155,7 +160,6 @@
 
       <div class="panel-sep"></div>
 
-      <!-- Result charts -->
       <div class="result-charts">
         <div class="chart-card">
           <div class="chart-head">
@@ -173,7 +177,7 @@
           <div class="chart-head">
             <div>
               <div class="chart-title">Predicted Amounts</div>
-              <div class="chart-sub">Quick comparison: 1g vs 10g vs 100g.</div>
+              <div class="chart-sub">Compare 1g vs 10g vs 100g.</div>
             </div>
           </div>
           <div class="chart-wrap">
@@ -183,11 +187,9 @@
       </div>
 
       <div class="warn">
-        ⚠️ These are AI-based estimates using historical trends and market reference.
-        Treat them as smart reference — not guaranteed rates.
+        ⚠️ These are AI-based estimates. Treat as reference — not guaranteed rates.
       </div>
 
-      <!-- Hidden for JS charts -->
       <div id="resultData"
            data-confidence="{{ result.confidence }}"
            data-p1="{{ result.prices.p1 }}"
@@ -204,7 +206,6 @@
   </div>
 </div>
 
-<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
 <script>
@@ -222,7 +223,7 @@
       const out = await res.json();
       if(!out.ok) throw new Error("trend failed");
 
-      sub.textContent = out.live ? "Live reference (₹/kg)" : "Fallback demo series (₹/kg)";
+      sub.textContent = "Source: " + (out.source || "unknown");
 
       const ctx = document.getElementById("trendChart").getContext("2d");
       new Chart(ctx, {
@@ -241,9 +242,7 @@
           responsive: true,
           maintainAspectRatio: false,
           plugins: { legend: { display: false } },
-          scales: {
-            y: { ticks: { callback: (v)=> formatINR(v) } }
-          }
+          scales: { y: { ticks: { callback: (v)=> formatINR(v) } } }
         }
       });
     }catch(e){
@@ -257,19 +256,13 @@
       type: "bar",
       data: {
         labels: premLabels,
-        datasets: [{
-          label: "Premium (₹/kg)",
-          data: premValues,
-          borderWidth: 1
-        }]
+        datasets: [{ label: "Premium (₹/kg)", data: premValues, borderWidth: 1 }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
-        scales: {
-          y: { ticks: { callback: (v)=> "₹" + v } }
-        }
+        scales: { y: { ticks: { callback: (v)=> "₹" + v } } }
       }
     });
   }
@@ -291,10 +284,7 @@
           labels: ["Confidence", "Remaining"],
           datasets: [{ data: [conf, Math.max(0, 100-conf)], borderWidth: 0 }]
         },
-        options: {
-          cutout: "70%",
-          plugins: { legend: { display: false } }
-        }
+        options: { cutout: "70%", plugins: { legend: { display: false } } }
       });
     }
 
@@ -304,19 +294,13 @@
         type: "bar",
         data: {
           labels: ["1g", "10g", "100g"],
-          datasets: [{
-            label: "Predicted Price (₹)",
-            data: [p1, p10, p100],
-            borderWidth: 1
-          }]
+          datasets: [{ label: "Predicted Price (₹)", data: [p1, p10, p100], borderWidth: 1 }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: { legend: { display: false } },
-          scales: {
-            y: { ticks: { callback: (v)=> formatINR(v) } }
-          }
+          scales: { y: { ticks: { callback: (v)=> formatINR(v) } } }
         }
       });
     }
