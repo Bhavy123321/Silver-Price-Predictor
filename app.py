@@ -409,6 +409,16 @@ def index():
 @app.route("/about")
 def about():
     return render_template("about.html", social=SOCIAL)
+    
+@app.context_processor
+def inject_globals():
+    return dict(SOCIAL=SOCIAL)
+    
+@app.route("/about")
+def about():
+    return render_template("about.html", title="About")
+    
+    
 
 @app.route("/reviews", methods=["GET", "POST"])
 def reviews():
@@ -433,4 +443,5 @@ def reviews():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
