@@ -1,37 +1,49 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="page-head">
-  <h1>About</h1>
-  <p>This project predicts silver direction using ML models and market reference values.</p>
+<section class="hero">
+  <h1 class="hero-title">About</h1>
+  <p class="hero-sub">
+    This project predicts silver direction using ML models and market reference values.
+  </p>
+</section>
+
+<div class="card">
+  <div class="card-title">How it works</div>
+  <ul class="list">
+    <li>Uses market reference (silver futures + USD/INR) when available</li>
+    <li>Converts USD/oz → INR/kg and applies State Premium</li>
+    <li>Applies purity factor (999/925/900/800)</li>
+    <li>ML model outputs direction (UP/DOWN) with confidence</li>
+  </ul>
+
+  <div class="warn">⚠ Educational project — not financial advice.</div>
 </div>
 
-<div class="page-grid">
-  <div class="panel">
-    <div class="panel-title">How it works</div>
-    <ul class="list">
-      <li>Uses market reference (silver futures + USD/INR) when available</li>
-      <li>Converts USD/oz → INR/kg and applies State Premium</li>
-      <li>Applies purity factor (999/925/900/800)</li>
-      <li>ML model outputs direction (UP/DOWN) with confidence</li>
-    </ul>
-    <div class="note">⚠️ Educational project — not financial advice.</div>
+<div class="card">
+  <div class="card-title">Contact</div>
+
+  <!-- ✅ FIXED BUTTONS -->
+  <div class="social-row">
+    <a class="social-btn social-github" href="{{ SOCIAL.github }}" target="_blank" rel="noopener">
+      <span class="social-ico">🐙</span>
+      <span>GitHub</span>
+    </a>
+
+    <a class="social-btn social-linkedin" href="{{ SOCIAL.linkedin }}" target="_blank" rel="noopener">
+      <span class="social-ico">in</span>
+      <span>LinkedIn</span>
+    </a>
   </div>
 
-  <div class="panel">
-    <div class="panel-title">Connect</div>
-    <div class="connect">
-      <a class="btn-primary ghostbtn" href="{{ social.github }}" target="_blank" rel="noopener">GitHub</a>
-      <a class="btn-primary ghostbtn" href="{{ social.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>
-    </div>
+  <div class="spacer"></div>
 
-    <div class="panel-title" style="margin-top:14px;">Future ideas</div>
-    <ul class="list">
-      <li>More charts + history</li>
-      <li>Export result as image / PDF</li>
-      <li>Spot price integration</li>
-    </ul>
-  </div>
+  <div class="card-title">Future ideas</div>
+  <ul class="list">
+    <li>More charts + history</li>
+    <li>Export result as image / PDF</li>
+    <li>Spot price integration</li>
+  </ul>
 </div>
 
 {% endblock %}
