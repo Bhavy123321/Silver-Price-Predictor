@@ -1,40 +1,114 @@
 {% extends "base.html" %}
 {% block content %}
 
-<section class="hero">
-  <h1 class="hero-title">About</h1>
-  <p class="hero-sub">
-    This project predicts silver direction using ML models and market reference values.
-  </p>
-</section>
+<div class="container about-page">
 
-<div class="card">
-  <div class="card-title">How it works</div>
-  <ul class="list">
-    <li>Uses market reference (silver futures + USD/INR) when available</li>
-    <li>Converts USD/oz → INR/kg and applies State Premium</li>
-    <li>Applies purity factor (999/925/900/800)</li>
-    <li>ML model outputs direction (UP/DOWN) with confidence</li>
-  </ul>
+  <!-- HERO -->
+  <div class="about-hero">
+    <div class="about-hero-left">
+      <h1 class="about-title">About</h1>
+      <p class="about-sub">
+        Silver Predictor estimates silver direction using ML signals + market reference values (Silver Futures & USD/INR),
+        and converts to INR/kg with purity + state premium adjustments.
+      </p>
 
-  <div class="warn">⚠ Educational project — not financial advice.</div>
-</div>
+      <div class="about-tags">
+        <span class="tag">ML Direction</span>
+        <span class="tag">Purity Factor</span>
+        <span class="tag">State Premium</span>
+      </div>
+    </div>
 
-<div class="card">
-  <div class="card-title">Contact</div>
-
-  <!-- ✅ Premium Buttons -->
-  <div class="social-row">
-    <a class="social-btn social-github" href="{{ social.github }}" target="_blank" rel="noopener">
-      <span class="social-ico">🐙</span>
-      <span>GitHub</span>
-    </a>
-
-    <a class="social-btn social-linkedin" href="{{ social.linkedin }}" target="_blank" rel="noopener">
-      <span class="social-ico">in</span>
-      <span>LinkedIn</span>
-    </a>
+    <div class="about-hero-right">
+      <div class="about-mini">
+        <div class="about-mini-title">Project snapshot</div>
+        <div class="about-mini-text">
+          Designed for learning & showcasing — not for real trading decisions.
+        </div>
+        <div class="about-mini-strip">
+          <span class="dot"></span>
+          <span>Educational • Demo-ready UI</span>
+        </div>
+      </div>
+    </div>
   </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="panel about-panel">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">How it works</div>
+        <div class="panel-sub">Simple pipeline used in this project</div>
+      </div>
+    </div>
+
+    <div class="about-steps">
+      <div class="step">
+        <div class="step-no">01</div>
+        <div class="step-body">
+          <div class="step-title">Market Reference</div>
+          <div class="step-text">Fetches Silver Futures and USD/INR when available (fallback to cache).</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-no">02</div>
+        <div class="step-body">
+          <div class="step-title">Convert & Adjust</div>
+          <div class="step-text">Converts USD/oz → INR/kg and applies State Premium.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-no">03</div>
+        <div class="step-body">
+          <div class="step-title">Purity Factor</div>
+          <div class="step-text">Applies purity scaling (999 / 925 / 900 / 800).</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-no">04</div>
+        <div class="step-body">
+          <div class="step-title">ML Direction</div>
+          <div class="step-text">Model outputs UP/DOWN with confidence and expected move estimate.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="about-warn">
+      ⚠ Educational project — not financial advice.
+    </div>
+  </div>
+
+  <!-- CONTACT -->
+  <div class="panel about-panel">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">Contact</div>
+        <div class="panel-sub">Connect with me for feedback & collaboration</div>
+      </div>
+    </div>
+
+    <div class="social-row">
+      <a class="social-btn social-github" href="{{ social.github }}" target="_blank" rel="noopener">
+        <span class="social-ico">🐙</span>
+        <span class="social-text">
+          <span class="social-top">GitHub</span>
+          <span class="social-bottom">Projects & code</span>
+        </span>
+      </a>
+
+      <a class="social-btn social-linkedin" href="{{ social.linkedin }}" target="_blank" rel="noopener">
+        <span class="social-ico">in</span>
+        <span class="social-text">
+          <span class="social-top">LinkedIn</span>
+          <span class="social-bottom">Profile & updates</span>
+        </span>
+      </a>
+    </div>
+  </div>
+
 </div>
 
 {% endblock %}
