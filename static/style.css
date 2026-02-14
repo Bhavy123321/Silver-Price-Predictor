@@ -460,3 +460,71 @@ html[data-theme="dark"] .footer a:hover{background: rgba(255,255,255,.06)}
   .amounts{grid-template-columns:1fr}
   .result-charts{grid-template-columns:1fr}
 }
+
+/* ================================
+   About Page - Contact Buttons FIX
+   ================================ */
+
+/* container row */
+.social-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:14px;
+  margin-top:12px;
+}
+
+/* real pill button */
+.social-btn{
+  text-decoration:none !important;     /* ✅ remove underline */
+  color: var(--text, #EAF0FF) !important;
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:12px 18px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
+  user-select:none;
+}
+
+/* hover effect */
+.social-btn:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px rgba(0,0,0,.35);
+  border-color: rgba(255,255,255,.22);
+  background: rgba(255,255,255,.09);
+}
+
+.social-btn:active{ transform: translateY(0); }
+
+.social-btn:focus{ outline:none; }
+
+.social-btn:focus-visible{
+  outline: 3px solid rgba(125, 211, 252, .45);
+  outline-offset: 3px;
+}
+
+/* icon box */
+.social-ico{
+  width:34px;
+  height:34px;
+  border-radius:10px;
+  display:grid;
+  place-items:center;
+  font-weight:800;
+  letter-spacing:.2px;
+  background: rgba(0,0,0,.25);
+  border:1px solid rgba(255,255,255,.12);
+}
+
+/* platform accents */
+.social-github{
+  background: linear-gradient(135deg, rgba(124,58,237,.35), rgba(14,165,233,.22));
+}
+
+.social-linkedin{
+  background: linear-gradient(135deg, rgba(59,130,246,.35), rgba(20,184,166,.20));
+}
+
