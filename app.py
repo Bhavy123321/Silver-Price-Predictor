@@ -33,15 +33,15 @@ SOCIAL = {
 # -------------------------
 @app.context_processor
 def inject_cache_bust():
-    # Changes each server boot; enough to force refresh on deploy
     return {"cache_bust": int(time.time())}
 
 # -------------------------
-# Inject SOCIAL globally (so About page never crashes)
+# Inject SOCIAL globally (BOTH keys to avoid template mismatch)
 # -------------------------
 @app.context_processor
 def inject_globals():
-    return dict(SOCIAL=SOCIAL)
+    # Some templates may use SOCIAL.github, some may use social.github
+    return {"SOCIAL": SOCIAL, "social": SOCIAL}
 
 # -------------------------
 # STATE PREMIUMS (₹/kg)
@@ -166,17 +166,9 @@ def parse_saved_at(saved_at):
 # HELPERS
 # -------------------------
 def usd_oz_to_inr_kg(price_usd_oz, usd_inr):
-    # 1 troy ounce = 31.1035g, 1kg=1000g
     return price_usd_oz * usd_inr * (1000 / 31.1035)
 
 def fetch_market_best():
-    """
-    1) Try LIVE Yahoo (yfinance)
-    2) If failed -> use LAST SUCCESSFUL cached value (accurate enough)
-    3) If no cache -> use realistic fallback (last resort)
-    Returns: silver_usd_oz, usd_inr, source ("live" | "cached" | "fallback")
-    """
-    # 1) live
     try:
         silver = yf.download("SI=F", period="5d", interval="1d", progress=False, threads=False)
         usd = yf.download("USDINR=X", period="5d", interval="1d", progress=False, threads=False)
@@ -189,16 +181,13 @@ def fetch_market_best():
 
         write_market_cache(silver_close, usd_close)
         return silver_close, usd_close, "live"
-
     except Exception as e:
         print("LIVE MARKET ERROR:", e)
 
-    # 2) cached
     cache = read_market_cache()
     if cache:
         saved_at = parse_saved_at(cache.get("saved_at", ""))
         if saved_at:
-            # allow cached up to 14 days
             age = datetime.now(saved_at.tzinfo) - saved_at
             if age <= timedelta(days=14):
                 try:
@@ -206,13 +195,9 @@ def fetch_market_best():
                 except:
                     pass
 
-    # 3) fallback
     return 99.3, 83.0, "fallback"
 
 def predict_safe(model, X):
-    """
-    If model missing, show demo direction/confidence instead of crashing.
-    """
     try:
         if model is None:
             return "UP", 70.0, False
@@ -226,10 +211,6 @@ def predict_safe(model, X):
         return "UP", 70.0, False
 
 def calc_daily_volatility_inrkg():
-    """
-    Daily volatility from 30-day INR/kg series.
-    If Yahoo fails -> safe default.
-    """
     try:
         silver = yf.download("SI=F", period="1mo", interval="1d", progress=False, threads=False)
         usd = yf.download("USDINR=X", period="1mo", interval="1d", progress=False, threads=False)
@@ -256,15 +237,11 @@ def calc_daily_volatility_inrkg():
         mean = sum(rets) / len(rets)
         var = sum((r - mean) ** 2 for r in rets) / (len(rets) - 1)
         return math.sqrt(var)
-
     except Exception as e:
         print("VOL ERROR:", e)
-        return 0.012  # ~1.2% daily fallback
+        return 0.012
 
 def estimate_move_pct(horizon_key, confidence_pct, direction):
-    """
-    Converts confidence + volatility into expected move % (capped).
-    """
     daily_vol = calc_daily_volatility_inrkg()
     conf = max(0.0, min(100.0, float(confidence_pct))) / 100.0
 
@@ -305,7 +282,6 @@ def api_trend():
             values.append(round(inr_kg, 2))
 
         return jsonify({"ok": True, "labels": labels[-30:], "values": values[-30:], "source": "live"})
-
     except Exception as e:
         print("API TREND ERROR:", e)
         silver_usd, usd_inr, src = fetch_market_best()
@@ -340,7 +316,6 @@ def index():
         premium = STATE_PREMIUM.get(state, 0)
         purity_factor = SILVER_PURITY.get(purity, 1.0)
 
-        # Current reference (State premium + purity)
         current_per_g = ((base_kg + premium) / 1000.0) * purity_factor
         current_per_kg = (base_kg + premium) * purity_factor
 
@@ -395,10 +370,10 @@ def index():
         prem_values=prem_values
     )
 
-# ✅ ONLY ONE ABOUT ROUTE
 @app.route("/about")
 def about():
-    return render_template("about.html", title="About")
+    # Pass social explicitly + title, works with any template usage
+    return render_template("about.html", title="About", social=SOCIAL)
 
 @app.route("/reviews", methods=["GET", "POST"])
 def reviews():
