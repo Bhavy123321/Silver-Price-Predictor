@@ -20,6 +20,13 @@ DB_PATH = os.path.join(BASE_DIR, "reviews.db")
 CACHE_PATH = os.path.join(BASE_DIR, "market_cache.json")
 MODELS_DIR = os.path.join(BASE_DIR, "models")
 
+# -------------------------
+# SOCIAL LINKS
+# -------------------------
+SOCIAL = {
+    "github": "https://github.com/Bhavy123321",
+    "linkedin": "https://www.linkedin.com/in/bhavy-soni-6123a32b0/"
+}
 
 # -------------------------
 # Add cache-busting for static files (CSS/JS)
@@ -29,14 +36,12 @@ def inject_cache_bust():
     # Changes each server boot; enough to force refresh on deploy
     return {"cache_bust": int(time.time())}
 
-
 # -------------------------
-# SOCIAL LINKS
+# Inject SOCIAL globally (so About page never crashes)
 # -------------------------
-SOCIAL = {
-    "github": "https://github.com/Bhavy123321",
-    "linkedin": "https://www.linkedin.com/in/bhavy-soni-6123a32b0/"
-}
+@app.context_processor
+def inject_globals():
+    return dict(SOCIAL=SOCIAL)
 
 # -------------------------
 # STATE PREMIUMS (₹/kg)
@@ -111,7 +116,6 @@ def get_reviews(limit=80):
         ).fetchall()
     return rows
 
-
 # -------------------------
 # MODELS (absolute path fix)
 # -------------------------
@@ -126,7 +130,6 @@ def safe_load_model(filename):
 model_1h = safe_load_model("model_next_hour.joblib")
 model_1d = safe_load_model("model_next_day.joblib")
 model_1m = safe_load_model("model_next_month.joblib")
-
 
 # -------------------------
 # MARKET CACHE
@@ -158,7 +161,6 @@ def parse_saved_at(saved_at):
         return datetime.fromisoformat(saved_at.replace("Z", "+00:00"))
     except:
         return None
-
 
 # -------------------------
 # HELPERS
@@ -204,13 +206,8 @@ def fetch_market_best():
                 except:
                     pass
 
-    # 3) fallback (last resort) — REALISTIC
-    # Your expectation: ~₹265,000/kg.
-    # If silver is ~₹265/g, then INR/oz ≈ 265 * 31.1035 ≈ 8242 INR/oz.
-    # USD/oz ≈ 8242 / 83 ≈ 99.3 USD/oz
-    # This keeps fallback close to real-world INR/kg.
+    # 3) fallback
     return 99.3, 83.0, "fallback"
-
 
 def predict_safe(model, X):
     """
@@ -227,7 +224,6 @@ def predict_safe(model, X):
     except Exception as e:
         print("PREDICT ERROR:", e)
         return "UP", 70.0, False
-
 
 def calc_daily_volatility_inrkg():
     """
@@ -265,7 +261,6 @@ def calc_daily_volatility_inrkg():
         print("VOL ERROR:", e)
         return 0.012  # ~1.2% daily fallback
 
-
 def estimate_move_pct(horizon_key, confidence_pct, direction):
     """
     Converts confidence + volatility into expected move % (capped).
@@ -287,7 +282,6 @@ def estimate_move_pct(horizon_key, confidence_pct, direction):
     move = max(-cap, min(cap, raw))
     sign = 1 if direction == "UP" else -1
     return sign * move
-
 
 # -------------------------
 # API: Trend Chart
@@ -323,7 +317,6 @@ def api_trend():
             cur += random.uniform(-2500, 2500)
             vals.append(round(cur, 2))
         return jsonify({"ok": True, "labels": labels, "values": vals, "source": src})
-
 
 # -------------------------
 # ROUTES
@@ -365,7 +358,6 @@ def index():
             horizon_label = "Next Month"
             horizon_key = "1m"
 
-        # Predicted price estimate
         move_pct = estimate_move_pct(horizon_key, conf, direction)
         predicted_per_g = current_per_g * (1.0 + move_pct)
         predicted_per_kg = current_per_kg * (1.0 + move_pct)
@@ -376,13 +368,11 @@ def index():
             "purity": purity,
             "direction": direction,
             "confidence": conf,
-            "market_source": market_source,  # live/cached/fallback
-
+            "market_source": market_source,
             "current_per_g": round(current_per_g, 2),
             "current_per_kg": round(current_per_kg, 2),
             "predicted_per_g": round(predicted_per_g, 2),
             "predicted_per_kg": round(predicted_per_kg, 2),
-
             "prices": {
                 "p1": round(predicted_per_g * 1, 2),
                 "p10": round(predicted_per_g * 10, 2),
@@ -392,7 +382,6 @@ def index():
             "model_ok": model_ok
         }
 
-    # chart data: top 8 premiums
     top_prem = sorted(STATE_PREMIUM.items(), key=lambda x: x[1], reverse=True)[:8]
     prem_labels = [k for k, _ in top_prem]
     prem_values = [v for _, v in top_prem]
@@ -406,19 +395,10 @@ def index():
         prem_values=prem_values
     )
 
-@app.route("/about")
-def about():
-    return render_template("about.html", social=SOCIAL)
-    
-@app.context_processor
-def inject_globals():
-    return dict(SOCIAL=SOCIAL)
-    
+# ✅ ONLY ONE ABOUT ROUTE
 @app.route("/about")
 def about():
     return render_template("about.html", title="About")
-    
-    
 
 @app.route("/reviews", methods=["GET", "POST"])
 def reviews():
@@ -443,5 +423,3 @@ def reviews():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-
